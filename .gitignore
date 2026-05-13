@@ -24,6 +24,9 @@ artifacts/
 mlruns/
 mlflow.db
 
+# Runtime logs / pids / docker container IDs produced by start.sh
+logs/
+
 # Data: ship raw CSVs in data/raw/, keep generated/intermediate out of git
 data/processed/
 data/interim/
