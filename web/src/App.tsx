@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { getInfo, history, listMachines, predict } from "./api";
-import { DatasetInfo, DigitalTwin, HistoryPoint, MachineInfo } from "./types";
+import { getInfo, getSession, history, listMachines, predict, resetSession } from "./api";
+import { DatasetInfo, DigitalTwin, HistoryPoint, MachineInfo, SessionStatus } from "./types";
 import { MachineSelector } from "./components/MachineSelector";
 import { TimestampPicker } from "./components/TimestampPicker";
 import { DigitalTwinCard } from "./components/DigitalTwinCard";
 import { TelemetryChart } from "./components/TelemetryChart";
 import { EventTimeline } from "./components/EventTimeline";
+import { UploadView } from "./components/UploadView";
 
 function plusHours(iso: string, hours: number): string {
   const d = new Date(iso);
@@ -14,6 +15,40 @@ function plusHours(iso: string, hours: number): string {
 }
 
 export default function App() {
+  const [session, setSession] = useState<SessionStatus | null>(null);
+  const [bootError, setBootError] = useState<string | null>(null);
+
+  async function refreshSession() {
+    try {
+      setSession(await getSession());
+    } catch (e: any) {
+      setBootError(String(e?.message ?? e));
+    }
+  }
+
+  useEffect(() => { refreshSession(); }, []);
+
+  if (bootError) {
+    return <div className="boot-error">Cannot reach API: {bootError}</div>;
+  }
+  if (!session) {
+    return <div className="boot-loading">Connecting to API...</div>;
+  }
+  if (!session.loaded) {
+    return <UploadView onSuccess={refreshSession} />;
+  }
+  return <Dashboard session={session} onReset={async () => {
+    await resetSession();
+    await refreshSession();
+  }} />;
+}
+
+interface DashboardProps {
+  session: SessionStatus;
+  onReset: () => Promise<void>;
+}
+
+function Dashboard({ session, onReset }: DashboardProps) {
   const [info, setInfo] = useState<DatasetInfo | null>(null);
   const [machines, setMachines] = useState<MachineInfo[]>([]);
   const [machineID, setMachineID] = useState<number | null>(null);
@@ -97,13 +132,21 @@ export default function App() {
 
         {error && <div className="error">{error}</div>}
 
-        {info && (
-          <div className="muted" style={{ fontSize: 12, marginTop: "auto" }}>
-            <div>model: {info.model_name}</div>
-            <div>threshold: {info.threshold.toFixed(3)}</div>
-            <div>{info.n_machines} machines</div>
-          </div>
-        )}
+        <div className="sidebar-foot">
+          {info && (
+            <div className="muted" style={{ fontSize: 12 }}>
+              <div>model: {info.model_name}</div>
+              <div>threshold: {info.threshold.toFixed(3)}</div>
+              <div>{info.n_machines} machines</div>
+              {session.uploaded_at && (
+                <div>uploaded: {new Date(session.uploaded_at).toLocaleString()}</div>
+              )}
+            </div>
+          )}
+          <button className="link" onClick={onReset}>
+            Upload new data
+          </button>
+        </div>
       </aside>
 
       <main className="main">
@@ -115,6 +158,31 @@ export default function App() {
               dashboard will show the digital-twin JSON returned by the FastAPI
               backend along with telemetry and event context around that time.
             </p>
+            {session.pipeline?.runs && (
+              <div className="metrics-table" style={{ marginTop: 16 }}>
+                <h3>Models trained on your data</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>run</th><th>PR-AUC</th><th>ROC-AUC</th>
+                      <th>precision</th><th>recall</th><th>F1</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(session.pipeline.runs).map(([name, m]) => (
+                      <tr key={name} className={name === session.pipeline?.best_run ? "best" : ""}>
+                        <td>{name}{name === session.pipeline?.best_run ? "  ★" : ""}</td>
+                        <td>{m.pr_auc?.toFixed(3)}</td>
+                        <td>{m.roc_auc?.toFixed(3)}</td>
+                        <td>{m.precision?.toFixed(3)}</td>
+                        <td>{m.recall?.toFixed(3)}</td>
+                        <td>{m.f1?.toFixed(3)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

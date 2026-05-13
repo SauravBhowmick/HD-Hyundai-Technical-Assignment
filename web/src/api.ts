@@ -1,4 +1,12 @@
-import { DatasetInfo, DigitalTwin, HistoryPoint, MachineInfo } from "./types";
+import {
+  DatasetInfo,
+  DigitalTwin,
+  HistoryPoint,
+  MachineInfo,
+  PipelineResult,
+  SessionStatus,
+  SlotKey,
+} from "./types";
 
 const BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
@@ -39,5 +47,27 @@ export async function history(
   const q = new URLSearchParams({ start, end }).toString();
   return jsonOrThrow<HistoryPoint[]>(
     await fetch(`${BASE}/history/${machineID}?${q}`)
+  );
+}
+
+export async function getSession(): Promise<SessionStatus> {
+  return jsonOrThrow<SessionStatus>(await fetch(`${BASE}/session`));
+}
+
+export async function resetSession(): Promise<SessionStatus> {
+  return jsonOrThrow<SessionStatus>(
+    await fetch(`${BASE}/session/reset`, { method: "POST" })
+  );
+}
+
+export async function uploadAndRun(
+  files: Record<SlotKey, File>
+): Promise<PipelineResult> {
+  const fd = new FormData();
+  (["telemetry", "errors", "failures", "machines", "maint"] as SlotKey[]).forEach((k) => {
+    fd.append(k, files[k]);
+  });
+  return jsonOrThrow<PipelineResult>(
+    await fetch(`${BASE}/upload-and-run`, { method: "POST", body: fd })
   );
 }

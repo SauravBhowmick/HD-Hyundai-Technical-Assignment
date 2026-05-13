@@ -65,8 +65,18 @@ make web-install
 make web
 ```
 
-Open <http://localhost:5173>. Pick a machine and a timestamp inside the data
-window (`2015-01-01 06:00` to `2016-01-01 06:00`) and click **Run prediction**.
+Open <http://localhost:5173>. The first time the dashboard loads it shows an
+**upload screen with five named drop-slots**: telemetry, errors, failures,
+machines, maint. Drop your CSVs in and click **Run analysis** — the backend
+runs validate → features → train (LR + LightGBM) → evaluate → drift on the
+uploaded data (~30s on this dataset) and then unlocks the dashboard. Use
+**Upload new data** in the sidebar to re-run the pipeline on a different
+dataset. The bundled Azure CSVs in `data/raw/` can be re-uploaded the same
+way — they are *example* data, not the live dataset.
+
+Direct API consumers can also POST to `/upload-and-run` directly (5
+multipart files with field names matching the slot keys above). The dashboard
+remains gated until at least one upload has succeeded.
 
 > macOS note: LightGBM links to OpenMP. If `import lightgbm` fails with a
 > `Library not loaded: @rpath/libomp.dylib` error, install it once with
