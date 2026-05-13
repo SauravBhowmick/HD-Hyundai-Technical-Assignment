@@ -199,7 +199,8 @@ def _commit_staged(staged_cfg: dict[str, Any], canonical_cfg: dict[str, Any]) ->
 async def _stage_one_upload(slot: str, fobj: UploadFile, target: Path,
                              max_bytes: int, error_id: str) -> int:
     """Stream `fobj` into `target` capped at `max_bytes`. Raise HTTPException(413)
-    on overrun (after deleting the partial write).
+    on overrun (after deleting the partial write). The HTTP response body carries
+    both a human-readable `detail` and the `error_id` correlation token.
     """
     written = 0
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -218,10 +219,13 @@ async def _stage_one_upload(slot: str, fobj: UploadFile, target: Path,
                 )
                 raise HTTPException(
                     status_code=413,
-                    detail=(
-                        f"file '{slot}' exceeds the {max_bytes // (1 << 20)} MiB "
-                        f"per-file upload limit"
-                    ),
+                    detail={
+                        "detail": (
+                            f"file '{slot}' exceeds the "
+                            f"{max_bytes // (1 << 20)} MiB per-file upload limit"
+                        ),
+                        "error_id": error_id,
+                    },
                 )
             out.write(chunk)
     return written
@@ -354,7 +358,13 @@ def create_app() -> FastAPI:
             try:
                 for slot, fobj in uploads.items():
                     if not fobj.filename:
-                        raise HTTPException(400, f"missing file for slot '{slot}'")
+                        raise HTTPException(
+                            status_code=400,
+                            detail={
+                                "detail": f"missing file for slot '{slot}'",
+                                "error_id": error_id,
+                            },
+                        )
                     target = staging_root / REQUIRED_FILES[slot]
                     await _stage_one_upload(
                         slot, fobj, target, MAX_UPLOAD_BYTES_PER_FILE, error_id

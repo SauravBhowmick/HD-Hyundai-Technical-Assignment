@@ -25,11 +25,15 @@ For a given `(machineID, timestamp)` the system returns a structured
 The system is **upload-driven**: the dashboard lands on an upload screen and
 stays gated until the user posts the 5 CSVs and the pipeline succeeds. Every
 upload is staged into `data/raw/.incoming/<uuid>/`, the pipeline runs against
-that staged tree, and only on full success do the staged files atomically
-replace the canonical `data/raw/*.csv` + `artifacts/*` and the `.session.json`
-sentinel get written. A failed upload leaves the live dataset and the prior
-session untouched. A process-wide lock serialises uploads (`429` on
-contention) and each file is size-capped (`413` on overrun).
+that staged tree, and only after every stage succeeds is the canonical state
+swapped in: each staged file is moved into place with `os.replace` (per-file
+atomic on the same filesystem) and finally `.session.json` is written with a
+temp-file + rename (sentinel write is atomic too). A failed *stage* leaves
+the live dataset and the prior session untouched. The commit step itself is
+a best-effort sequence of ~10 `os.replace` calls: an IO error mid-commit
+(e.g. ENOSPC) can leave canonical state partially updated — recovery is to
+re-upload. A process-wide lock serialises uploads (`429` on contention) and
+each file is size-capped (`413` on overrun).
 
 ```mermaid
 flowchart LR
@@ -97,11 +101,18 @@ Lifecycle:
    path and `.session.json` is written atomically (temp + `os.replace`). The
    in-memory predictor + frame caches are reset; the next analysis call
    warm-loads from the freshly committed artifacts.
-4. On any failure, the staging tree is removed (cleanup runs in `finally`
-   too), the canonical state and the previous session are left untouched,
-   and the client gets a sanitised `error` + an `error_id` correlation
-   token. The full exception is logged server-side under that id.
-5. The Typer CLI is the headless equivalent (`pdm-twin train …`) — it writes
+4. On a failed *pipeline stage* (`save`, `validate`, `train`, `commit`), the
+   staging tree is removed (cleanup runs in `finally` too) and the response
+   is a `PipelineResult` JSON with `ok: false`, a sanitised `error`, an
+   `error_id` field, and the per-stage timing array. The matching full
+   exception is logged server-side under that `error_id`.
+5. HTTP-level rejections that short-circuit before pipeline stages also carry
+   an `error_id` where it's meaningful: `413` (per-file size cap) and `400`
+   (missing slot) return `{"detail": "...", "error_id": "..."}`. `429`
+   (concurrent upload) returns just `{"detail": "..."}` — there is no server
+   log entry to correlate against because the request never reached the
+   pipeline. `429` callers should simply retry.
+6. The Typer CLI is the headless equivalent (`pdm-twin train …`) — it writes
    directly to canonical paths without staging, intended for batch/CI use.
 
 ## Quickstart
