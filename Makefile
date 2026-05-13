@@ -1,0 +1,84 @@
+.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run start start-local clean all
+
+PYTHON ?= python3
+VENV ?= .venv
+PIP := $(VENV)/bin/pip
+PY := $(VENV)/bin/python
+MID ?= 1
+TS ?= 2015-06-01T06:00:00
+
+help:
+	@echo "Targets:"
+	@echo "  install     install python deps into $(VENV)"
+	@echo "  validate    schema + range checks on raw CSVs"
+	@echo "  train       train baseline + LightGBM, MLflow runs, save model"
+	@echo "  evaluate    reprint last metrics JSON"
+	@echo "  drift       train-vs-test PSI report (artifacts/drift_report.md)"
+	@echo "  predict     predict for MID=<id> TS=<iso>"
+	@echo "  api         start FastAPI on :8000"
+	@echo "  test        run pytest"
+	@echo "  web-install install web deps"
+	@echo "  web         start the Vite dev server (:5173)"
+	@echo "  web-build   build the web app for production"
+	@echo "  docker      build the Docker image"
+	@echo "  docker-run  run the Docker image (port 8000)"
+	@echo "  start       start API (docker) + web + MLflow UI together (./start.sh)"
+	@echo "  start-local start API (local uvicorn) + web + MLflow UI together"
+	@echo "  all         install -> train -> drift -> test"
+	@echo "  clean       remove build artifacts"
+
+$(VENV):
+	$(PYTHON) -m venv $(VENV)
+
+install: $(VENV)
+	$(PIP) install --upgrade pip
+	$(PIP) install -e ".[dev]"
+
+validate:
+	$(PY) -m pdm.cli validate
+
+train:
+	$(PY) -m pdm.cli train
+
+evaluate:
+	$(PY) -m pdm.cli evaluate
+
+drift:
+	$(PY) -m pdm.cli drift
+
+predict:
+	$(PY) -m pdm.cli predict --machine-id $(MID) --timestamp $(TS)
+
+api:
+	$(VENV)/bin/uvicorn api.server:app --host 0.0.0.0 --port 8000 --reload
+
+test:
+	$(VENV)/bin/pytest
+
+web-install:
+	cd web && npm install
+
+web:
+	cd web && npm run dev
+
+web-build:
+	cd web && npm run build
+
+docker:
+	docker build -t pdm-digital-twin .
+
+docker-run:
+	docker run --rm -p 8000:8000 pdm-digital-twin
+
+start:
+	./start.sh
+
+start-local:
+	./start.sh --local
+
+all: install train drift test
+	@echo "[all] done. Run 'make api' to start the API."
+
+clean:
+	rm -rf artifacts mlruns .pytest_cache .ruff_cache .mypy_cache
+	find . -name __pycache__ -type d -prune -exec rm -rf {} +

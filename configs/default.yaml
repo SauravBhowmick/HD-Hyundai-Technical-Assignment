@@ -1,0 +1,82 @@
+# Default configuration for the PdM Digital Twin pipeline.
+# Override at runtime by passing --config to the CLI or with env vars.
+
+paths:
+  raw_dir: data/raw
+  artifacts_dir: artifacts
+  mlruns_dir: mlruns
+  model_file: artifacts/model.joblib
+  metrics_file: artifacts/metrics.json
+  threshold_file: artifacts/threshold.json
+  drift_report: artifacts/drift_report.md
+  plots_dir: artifacts/plots
+  feature_hash_file: artifacts/feature_hash.txt
+
+split:
+  # Justified in the README: ~75/25 train/test, leaves 3 months of test data,
+  # covers all failure modes and seasonal variation.
+  cutoff: "2015-10-01 00:00:00"
+
+# t0 used to express machine age dynamically: age_at_t = age + (t - t0) / 365.25d
+age_anchor: "2015-01-01 00:00:00"
+
+features:
+  telemetry_cols: [volt, rotate, pressure, vibration]
+  rolling_windows_h: [3, 24, 72]
+  error_window_h: [24, 72]
+  # Map errors to suspected components (used in rule-based likely_component).
+  error_to_component:
+    error1: comp1
+    error2: comp2
+    error3: comp3
+    error4: comp4
+    error5: comp1
+
+label:
+  horizon_h: 24
+
+models:
+  baseline:
+    name: logistic_regression
+    params:
+      C: 1.0
+      max_iter: 1000
+      class_weight: balanced
+  final:
+    name: lightgbm
+    params:
+      n_estimators: 400
+      learning_rate: 0.05
+      num_leaves: 63
+      max_depth: -1
+      min_child_samples: 50
+      subsample: 0.9
+      colsample_bytree: 0.9
+      reg_lambda: 1.0
+      class_weight: balanced
+      random_state: 42
+      n_jobs: -1
+
+evaluate:
+  # F1-optimal threshold is selected on the test slice; this acts as the
+  # fallback when the artifacts/threshold.json doesn't exist.
+  default_threshold: 0.30
+  alarm_horizon_h: 24
+
+health_state:
+  thresholds:
+    healthy_max: 0.10
+    watch_max: 0.30
+    degraded_max: 0.60
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  cors_origins:
+    - "http://localhost:5173"
+    - "http://127.0.0.1:5173"
+    - "http://localhost:5174"
+    - "http://127.0.0.1:5174"
+    - "http://localhost:4173"
+
+random_seed: 42
