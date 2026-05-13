@@ -22,29 +22,87 @@ For a given `(machineID, timestamp)` the system returns a structured
 
 ## Architecture
 
+The system is **upload-driven**: the dashboard lands on an upload screen and
+stays gated until the user posts the 5 CSVs and the pipeline succeeds. Every
+upload is staged into `data/raw/.incoming/<uuid>/`, the pipeline runs against
+that staged tree, and only on full success do the staged files atomically
+replace the canonical `data/raw/*.csv` + `artifacts/*` and the `.session.json`
+sentinel get written. A failed upload leaves the live dataset and the prior
+session untouched. A process-wide lock serialises uploads (`429` on
+contention) and each file is size-capped (`413` on overrun).
+
 ```mermaid
 flowchart LR
-    subgraph python [Python core]
-        CSV[data/raw/*.csv] --> IO[pdm.io<br/>load + schema check]
-        IO --> VAL[pdm.validate]
-        VAL --> FEAT[pdm.features<br/>rolling 3h/24h/72h,<br/>error counts,<br/>hours since maint,<br/>age_at_t]
-        FEAT --> LAB[pdm.labels<br/>fail in t, t plus 24h]
-        LAB --> SPLIT[pdm.split<br/>cutoff 2015-10-01]
-        SPLIT --> TRAIN[pdm.train<br/>baseline LR + LightGBM<br/>MLflow >= 2 runs]
-        TRAIN --> EVAL[pdm.evaluate<br/>PR-AUC, ROC-AUC, P/R, CM,<br/>false alarms per machine-month]
-        TRAIN --> ART[artifacts/model.joblib]
-        ART --> PRED[pdm.predict]
-        PRED --> HEALTH[pdm.health<br/>state + prescription]
-        HEALTH --> COMP[pdm.likely_component<br/>rule-based]
-        COMP --> TWIN[pdm.twin -> JSON]
-        TRAIN --> DRIFT[pdm.drift PSI report]
+    USER["User or curl"]
+    WEB["React + Vite + TS<br/>dashboard"]
+    USER -->|"5 CSVs"| WEB
+    WEB -->|"multipart"| UPL
+
+    subgraph api ["FastAPI"]
+        UPL["POST /upload-and-run<br/>lock + size cap + staging"]
+        SESS["artifacts/.session.json<br/>sentinel"]
+        READ["GET /info, /machines<br/>POST /predict<br/>GET /history, /metrics"]
+        UPL --> STAGE
+        UPL -. "on success" .-> COMMIT
+        COMMIT --> SESS
+        SESS -. "gates" .-> READ
     end
-    TWIN --> API[FastAPI /predict]
-    API --> WEB[React/Vite/TS dashboard]
-    CLI[Typer CLI<br/>train / evaluate / predict / drift] --> TRAIN
-    CLI --> EVAL
-    CLI --> PRED
+
+    subgraph stage ["Staged tree (data/raw/.incoming/uuid)"]
+        STAGE["5 CSVs staged"]
+        STAGE --> IO["pdm.io load_raw"]
+        IO --> VAL["pdm.validate"]
+        VAL --> FEAT["pdm.features<br/>rolling 3h, 24h, 72h<br/>error counts<br/>hours since maint<br/>age_at_t"]
+        FEAT --> LAB["pdm.labels<br/>fail in (t, t+24h]"]
+        LAB --> SPLIT["pdm.split<br/>cutoff 2015-10-01"]
+        SPLIT --> TRAIN["pdm.train<br/>baseline LR + LightGBM<br/>MLflow runs"]
+        TRAIN --> EVAL["pdm.evaluate<br/>PR-AUC, ROC-AUC, P, R, CM<br/>false alarms per machine-month"]
+        TRAIN --> DRIFT["pdm.drift PSI report"]
+    end
+
+    EVAL --> COMMIT["atomic os.replace<br/>staged to canonical"]
+    DRIFT --> COMMIT
+
+    subgraph canonical ["Canonical state"]
+        RAW["data/raw/PdM_*.csv"]
+        ART["artifacts/model.joblib<br/>metrics.json, threshold.json<br/>drift_report.md, plots"]
+    end
+    COMMIT --> RAW
+    COMMIT --> ART
+
+    READ --> PRED["pdm.predict"]
+    PRED --> HEALTH["pdm.health<br/>state + prescription"]
+    HEALTH --> COMP["pdm.likely_component<br/>rule-based"]
+    COMP --> TWIN["pdm.twin to JSON"]
+    ART --> PRED
+    RAW --> PRED
+    TWIN --> WEB
+
+    CLI["Typer CLI<br/>validate, train, evaluate, predict, drift"] -.->|"headless,<br/>writes directly"| ART
+    CLI -.-> RAW
 ```
+
+Lifecycle:
+
+1. The user opens the dashboard → it calls `GET /session`. Without a sentinel,
+   the analysis endpoints return `409` and the UI shows the upload screen.
+2. The user drops 5 CSVs into the named slots and clicks **Run analysis** →
+   `POST /upload-and-run`. The endpoint acquires the pipeline lock
+   (concurrent callers get `429`), streams each file into the staging tree
+   capped at `PDM_MAX_UPLOAD_BYTES_PER_FILE` (`413` on overrun), and runs
+   `load_raw → validate → train → drift` against a cfg copy whose
+   `raw_dir`/`artifacts_dir` point at the staging tree. MLflow runs are still
+   logged into the global `./mlruns/` so history accumulates across uploads.
+3. On full success, every staged file is `os.replace`-d into its canonical
+   path and `.session.json` is written atomically (temp + `os.replace`). The
+   in-memory predictor + frame caches are reset; the next analysis call
+   warm-loads from the freshly committed artifacts.
+4. On any failure, the staging tree is removed (cleanup runs in `finally`
+   too), the canonical state and the previous session are left untouched,
+   and the client gets a sanitised `error` + an `error_id` correlation
+   token. The full exception is logged server-side under that id.
+5. The Typer CLI is the headless equivalent (`pdm-twin train …`) — it writes
+   directly to canonical paths without staging, intended for batch/CI use.
 
 ## Quickstart
 
