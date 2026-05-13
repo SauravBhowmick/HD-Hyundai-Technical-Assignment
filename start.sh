@@ -22,7 +22,7 @@
 #   API_PORT=8000         port for the local uvicorn (and for the web's API base)
 #   DOCKER_API_PORT=8002  port the Docker container is published on
 #   WEB_PORT=5173         Vite dev server port
-#   MLFLOW_PORT=5000      MLflow UI port
+#   MLFLOW_PORT=5050      MLflow UI port (default off 5000 to dodge macOS AirPlay)
 
 set -euo pipefail
 
@@ -35,7 +35,7 @@ WITH_DOCKER=0             # in local mode, also run docker side-by-side
 API_PORT="${API_PORT:-8000}"
 DOCKER_API_PORT="${DOCKER_API_PORT:-8002}"
 WEB_PORT="${WEB_PORT:-5173}"
-MLFLOW_PORT="${MLFLOW_PORT:-5000}"
+MLFLOW_PORT="${MLFLOW_PORT:-5050}"
 IMAGE="pdm-digital-twin"
 CONTAINER="pdm-twin-api"
 LOG_DIR="$SCRIPT_DIR/logs"
@@ -64,7 +64,7 @@ Env vars (defaults shown):
   API_PORT=8000          local uvicorn port; the web uses this for /api
   DOCKER_API_PORT=8002   port for the Docker container
   WEB_PORT=5173          Vite dev server port
-  MLFLOW_PORT=5000       MLflow UI port
+  MLFLOW_PORT=5050       MLflow UI port (avoids macOS AirPlay on 5000)
 
 Press Ctrl+C to stop everything cleanly.
 USAGE
@@ -262,8 +262,11 @@ fi
 # -------- MLflow UI --------
 if [[ $WITH_MLFLOW -eq 1 ]]; then
   if port_in_use "$MLFLOW_PORT"; then
-    warn "port $MLFLOW_PORT busy (macOS AirPlay uses 5000 by default). Skipping MLflow."
-    warn "  Disable 'AirPlay Receiver' in System Settings, or pass MLFLOW_PORT=5050 ./start.sh"
+    warn "port $MLFLOW_PORT busy. Skipping MLflow."
+    if [[ "$(uname)" == "Darwin" && "$MLFLOW_PORT" == "5000" ]]; then
+      warn "  On macOS, port 5000 is taken by 'AirPlay Receiver' (disable in System Settings)."
+    fi
+    warn "  Or pick another port:  MLFLOW_PORT=5051 ./start.sh"
     WITH_MLFLOW=0
   else
     log "starting MLflow UI on :$MLFLOW_PORT (file store at ./mlruns)..."

@@ -95,8 +95,12 @@ container ships with a trained model and the metrics + drift artefacts.
 ### MLflow UI
 
 ```bash
-.venv/bin/mlflow ui --backend-store-uri "$PWD/mlruns"
+.venv/bin/mlflow ui --backend-store-uri "$PWD/mlruns" --port 5050
 ```
+
+Then open http://localhost:5050. The default port is `5050` to dodge macOS AirPlay
+Receiver, which squats on `5000`; `./start.sh` uses the same default. Pick any free
+port with `--port <N>` if 5050 is also taken.
 
 Two runs are logged on every `make train`: `baseline_lr` and `lightgbm_v1`.
 
