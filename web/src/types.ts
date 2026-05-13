@@ -42,3 +42,42 @@ export interface HistoryPoint {
   maint: string[];
   failures: string[];
 }
+
+export type SlotKey = "telemetry" | "errors" | "failures" | "machines" | "maint";
+
+export interface SessionStatus {
+  loaded: boolean;
+  uploaded_at?: string | null;
+  files?: Record<string, string> | null;
+  pipeline?: {
+    best_run?: string;
+    best_threshold?: number;
+    feature_hash?: string;
+    train_rows?: number;
+    test_rows?: number;
+    runs?: Record<string, {
+      pr_auc?: number;
+      roc_auc?: number;
+      precision?: number;
+      recall?: number;
+      f1?: number;
+      threshold?: number;
+      false_alarms_per_machine_month?: number;
+    }>;
+  } | null;
+}
+
+export interface StageResult {
+  name: string;
+  ok: boolean;
+  seconds: number;
+  info?: string | null;
+}
+
+export interface PipelineResult {
+  ok: boolean;
+  stages: StageResult[];
+  metrics?: SessionStatus["pipeline"];
+  error?: string | null;
+  error_id?: string | null;
+}

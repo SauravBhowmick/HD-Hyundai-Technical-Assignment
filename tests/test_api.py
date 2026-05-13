@@ -49,15 +49,43 @@ class _FakePredictor:
 
 
 @pytest.fixture()
-def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def client(monkeypatch: pytest.MonkeyPatch, tmp_path) -> TestClient:
     import api.server as server_mod
 
     monkeypatch.setattr(
         server_mod.Predictor, "from_artifacts",
         classmethod(lambda cls, cfg=None: _FakePredictor()),
     )
+    # The analysis endpoints require an active session; write a fake one
+    # into a tmp artifacts dir and point the config at it.
+    monkeypatch.setattr(
+        server_mod, "load_config",
+        lambda *a, **kw: _fake_cfg(tmp_path),
+    )
     app = server_mod.create_app()
     return TestClient(app)
+
+
+def _fake_cfg(tmp_path) -> dict:
+    """Real cfg with paths rebased into tmp_path and a session sentinel written."""
+    import json
+    from datetime import datetime, timezone
+
+    from pdm.config import load_config
+
+    cfg = load_config()
+    cfg["_repo_root"] = str(tmp_path)
+    cfg["api"] = {"cors_origins": []}
+    art = tmp_path / "artifacts"
+    art.mkdir(parents=True, exist_ok=True)
+    (art / ".session.json").write_text(json.dumps({
+        "loaded": True,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "files": {k: f"{k}.csv" for k in
+                  ("telemetry", "errors", "failures", "machines", "maint")},
+        "pipeline": {"best_run": "fake"},
+    }))
+    return cfg
 
 
 def test_healthz(client: TestClient) -> None:
