@@ -38,3 +38,4 @@ web/tsconfig.tsbuildinfo
 # Editor
 .idea/
 .vscode/
+archive/PdM_telemetry.csv
