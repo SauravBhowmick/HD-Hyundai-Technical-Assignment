@@ -30,6 +30,7 @@ logs/
 # Data: ship raw CSVs in data/raw/, keep generated/intermediate out of git
 data/processed/
 data/interim/
+data/raw/.incoming/
 
 # Node / Vite
 web/node_modules/

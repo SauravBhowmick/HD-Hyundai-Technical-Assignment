@@ -79,4 +79,5 @@ export interface PipelineResult {
   stages: StageResult[];
   metrics?: SessionStatus["pipeline"];
   error?: string | null;
+  error_id?: string | null;
 }
