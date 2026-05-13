@@ -263,7 +263,9 @@ fi
 if [[ $WITH_MLFLOW -eq 1 ]]; then
   if port_in_use "$MLFLOW_PORT"; then
     warn "port $MLFLOW_PORT busy. Skipping MLflow."
-    warn "  On macOS, port 5000 is taken by 'AirPlay Receiver' (disable in System Settings)."
+    if [[ "$(uname)" == "Darwin" && "$MLFLOW_PORT" == "5000" ]]; then
+      warn "  On macOS, port 5000 is taken by 'AirPlay Receiver' (disable in System Settings)."
+    fi
     warn "  Or pick another port:  MLFLOW_PORT=5051 ./start.sh"
     WITH_MLFLOW=0
   else
