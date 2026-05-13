@@ -1,4 +1,4 @@
-.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run start start-local clean all
+.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run start start-docker start-with-docker clean all
 
 PYTHON ?= python3
 VENV ?= .venv
@@ -22,8 +22,9 @@ help:
 	@echo "  web-build   build the web app for production"
 	@echo "  docker      build the Docker image"
 	@echo "  docker-run  run the Docker image (port 8000)"
-	@echo "  start       start API (docker) + web + MLflow UI together (./start.sh)"
-	@echo "  start-local start API (local uvicorn) + web + MLflow UI together"
+	@echo "  start             local API + web + MLflow UI (./start.sh)"
+	@echo "  start-docker      Docker API + web + MLflow UI"
+	@echo "  start-with-docker local API AND side-by-side Docker + web + MLflow UI"
 	@echo "  all         install -> train -> drift -> test"
 	@echo "  clean       remove build artifacts"
 
@@ -73,8 +74,11 @@ docker-run:
 start:
 	./start.sh
 
-start-local:
-	./start.sh --local
+start-docker:
+	./start.sh --docker
+
+start-with-docker:
+	./start.sh --with-docker
 
 all: install train drift test
 	@echo "[all] done. Run 'make api' to start the API."

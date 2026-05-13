@@ -1,140 +1,15 @@
-INFO:     Started server process [1]
+INFO:     Started server process [77025]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     192.168.65.1:62572 - "GET /healthz HTTP/1.1" 200 OK
-INFO:     192.168.65.1:57901 - "GET /healthz HTTP/1.1" 200 OK
-INFO:     192.168.65.1:56930 - "POST /predict HTTP/1.1" 200 OK
-INFO:     192.168.65.1:42866 - "OPTIONS /predict HTTP/1.1" 200 OK
-INFO:     192.168.65.1:50388 - "GET /machines HTTP/1.1" 200 OK
-INFO:     192.168.65.1:58974 - "GET /machines HTTP/1.1" 200 OK
-INFO:     192.168.65.1:16390 - "GET /info HTTP/1.1" 200 OK
-INFO:     192.168.65.1:58974 - "GET /info HTTP/1.1" 200 OK
-INFO:     192.168.65.1:41072 - "OPTIONS /predict HTTP/1.1" 200 OK
-INFO:     192.168.65.1:41072 - "POST /predict HTTP/1.1" 200 OK
-INFO:     192.168.65.1:41072 - "GET /history/1?start=2015-12-14T19%3A00%3A00&end=2015-12-16T19%3A00%3A00 HTTP/1.1" 200 OK
-INFO:     192.168.65.1:49154 - "GET /machines HTTP/1.1" 200 OK
-INFO:     192.168.65.1:36211 - "GET /machines HTTP/1.1" 200 OK
-INFO:     192.168.65.1:46028 - "GET /info HTTP/1.1" 200 OK
-INFO:     192.168.65.1:36211 - "GET /info HTTP/1.1" 200 OK
-INFO:     192.168.65.1:35001 - "POST /predict HTTP/1.1" 200 OK
-INFO:     192.168.65.1:35001 - "GET /history/1?start=2015-12-14T19%3A00%3A00&end=2015-12-16T19%3A00%3A00 HTTP/1.1" 200 OK
-INFO:     192.168.65.1:24223 - "GET /machines HTTP/1.1" 200 OK
-INFO:     192.168.65.1:34992 - "GET /machines HTTP/1.1" 200 OK
-INFO:     192.168.65.1:35486 - "GET /info HTTP/1.1" 200 OK
-INFO:     192.168.65.1:34992 - "GET /info HTTP/1.1" 200 OK
-INFO:     192.168.65.1:50593 - "GET /docs HTTP/1.1" 200 OK
-INFO:     192.168.65.1:50593 - "GET /openapi.json HTTP/1.1" 200 OK
-INFO:     192.168.65.1:50698 - "POST /predict HTTP/1.1" 500 Internal Server Error
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/arrays/datetimelike.py", line 559, in _validate_comparison_value
-    self._check_compatible_with(other)
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/arrays/datetimes.py", line 542, in _check_compatible_with
-    self._assert_tzawareness_compat(other)
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/arrays/datetimes.py", line 784, in _assert_tzawareness_compat
-    raise TypeError(
-TypeError: Cannot compare tz-naive and tz-aware datetime-like objects.
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/arrays/datetimelike.py", line 1006, in _cmp_method
-    other = self._validate_comparison_value(other)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/arrays/datetimelike.py", line 562, in _validate_comparison_value
-    raise InvalidComparison(other) from err
-pandas.errors.InvalidComparison: 2026-05-13 11:45:49.467000+00:00
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/usr/local/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 421, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 56, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/fastapi/applications.py", line 1159, in __call__
-    await super().__call__(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/applications.py", line 90, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
-    raise exc
-  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 96, in __call__
-    await self.simple_response(scope, receive, send, request_headers=headers)
-  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/cors.py", line 154, in simple_response
-    await self.app(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
-    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
-    raise exc
-  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
-    await app(scope, receive, sender)
-  File "/usr/local/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
-    await self.app(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 660, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 680, in app
-    await route.handle(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 276, in handle
-    await self.app(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 134, in app
-    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
-    raise exc
-  File "/usr/local/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
-    await app(scope, receive, sender)
-  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 120, in app
-    response = await f(request)
-               ^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 674, in app
-    raw_response = await run_endpoint_function(
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
-    return await run_in_threadpool(dependant.call, **values)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
-    return await anyio.to_thread.run_sync(func)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/anyio/to_thread.py", line 63, in run_sync
-    return await get_async_backend().run_sync_in_worker_thread(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
-    return await future
-           ^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
-    result = context.run(func, *args)
-             ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/app/api/server.py", line 103, in predict
-    result = _predictor().predict_row(req.machineID, pd.Timestamp(req.timestamp))
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pdm/predict.py", line 58, in predict_row
-    & (self.features["datetime"] <= ts)
-       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/ops/common.py", line 76, in new_method
-    return method(self, other)
-           ^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/arraylike.py", line 52, in __le__
-    return self._cmp_method(other, operator.le)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/series.py", line 6138, in _cmp_method
-    res_values = ops.comparison_op(lvalues, rvalues, op)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/ops/array_ops.py", line 330, in comparison_op
-    res_values = op(lvalues, rvalues)
-                 ^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/ops/common.py", line 76, in new_method
-    return method(self, other)
-           ^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/arraylike.py", line 52, in __le__
-    return self._cmp_method(other, operator.le)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/arrays/datetimelike.py", line 1008, in _cmp_method
-    return invalid_comparison(self, other, op)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/site-packages/pandas/core/ops/invalid.py", line 40, in invalid_comparison
-    raise TypeError(f"Invalid comparison between dtype={left.dtype} and {typ}")
-TypeError: Invalid comparison between dtype=datetime64[ns] and Timestamp
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55792 - "GET /healthz HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56055 - "GET /healthz HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56096 - "POST /predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:56132 - "POST /predict HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:56166 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56326 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56364 - "POST /predict HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [77025]
