@@ -1,13 +1,7 @@
-[2026-05-13 11:39:13 +0200] [37223] [INFO] Starting gunicorn 23.0.0
-[2026-05-13 11:39:13 +0200] [37223] [INFO] Listening at: http://0.0.0.0:5050 (37223)
-[2026-05-13 11:39:13 +0200] [37223] [INFO] Using worker: sync
-[2026-05-13 11:39:13 +0200] [37224] [INFO] Booting worker with pid: 37224
-[2026-05-13 11:39:13 +0200] [37225] [INFO] Booting worker with pid: 37225
-[2026-05-13 11:39:13 +0200] [37226] [INFO] Booting worker with pid: 37226
-[2026-05-13 11:39:13 +0200] [37227] [INFO] Booting worker with pid: 37227
-[2026-05-13 11:46:06 +0200] [37223] [INFO] Handling signal: term
-[2026-05-13 11:46:06 +0200] [37227] [INFO] Worker exiting (pid: 37227)
-[2026-05-13 11:46:06 +0200] [37226] [INFO] Worker exiting (pid: 37226)
-[2026-05-13 11:46:06 +0200] [37224] [INFO] Worker exiting (pid: 37224)
-[2026-05-13 11:46:06 +0200] [37225] [INFO] Worker exiting (pid: 37225)
-[2026-05-13 11:46:06 +0200] [37223] [INFO] Shutting down: Master
+[2026-05-13 13:40:58 +0200] [76270] [INFO] Starting gunicorn 23.0.0
+[2026-05-13 13:40:58 +0200] [76270] [INFO] Listening at: http://0.0.0.0:5050 (76270)
+[2026-05-13 13:40:58 +0200] [76270] [INFO] Using worker: sync
+[2026-05-13 13:40:58 +0200] [76271] [INFO] Booting worker with pid: 76271
+[2026-05-13 13:40:58 +0200] [76272] [INFO] Booting worker with pid: 76272
+[2026-05-13 13:40:58 +0200] [76273] [INFO] Booting worker with pid: 76273
+[2026-05-13 13:40:58 +0200] [76274] [INFO] Booting worker with pid: 76274

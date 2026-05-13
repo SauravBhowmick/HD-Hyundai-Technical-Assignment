@@ -4,7 +4,7 @@ npm warn Unknown env config "devdir". This will stop working in the next major v
 > vite --port 5180 --strictPort
 
 
-  VITE v5.4.21  ready in 169 ms
+  VITE v5.4.21  ready in 156 ms
 
   ➜  Local:   http://localhost:5180/
   ➜  Network: use --host to expose

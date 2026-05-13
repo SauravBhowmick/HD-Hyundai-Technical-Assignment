@@ -68,6 +68,8 @@ done
 
 mkdir -p "$LOG_DIR"
 
+VENV_PY=".venv/bin/python"
+
 log()  { printf "\033[1;34m[start]\033[0m %s\n" "$*"; }
 warn() { printf "\033[1;33m[start]\033[0m %s\n" "$*"; }
 err()  { printf "\033[1;31m[start]\033[0m %s\n" "$*" >&2; }
@@ -131,18 +133,39 @@ if [[ $WITH_WEB -eq 1 && ! -d web/node_modules ]]; then
   (cd web && npm install) >/dev/null
 fi
 
-if [[ $WITH_MLFLOW -eq 1 && ! -x .venv/bin/mlflow ]]; then
-  warn "MLflow CLI not in .venv. Run 'make install' once to enable the MLflow UI."
-  WITH_MLFLOW=0
+if [[ $WITH_MLFLOW -eq 1 ]]; then
+  if [[ ! -x "$VENV_PY" ]]; then
+    warn "$VENV_PY not found. Run 'make install' once to enable the MLflow UI."
+    WITH_MLFLOW=0
+  elif ! "$VENV_PY" -c "import mlflow" >/dev/null 2>&1; then
+    warn "mlflow not importable from $VENV_PY (broken shebang or missing pkg)."
+    warn "  Run 'rm -rf .venv && make install' to rebuild the venv in this directory."
+    WITH_MLFLOW=0
+  fi
 fi
 
 # Pass any non-default web origin to the API so CORS works without a rebuild.
 EXTRA_CORS="http://localhost:$WEB_PORT,http://127.0.0.1:$WEB_PORT"
 
 # -------- API --------
+API_ALREADY_OK=0
 if port_in_use "$API_PORT"; then
-  warn "port $API_PORT already in use; skipping API startup (using whatever is there)."
-else
+  if curl -sf "http://localhost:$API_PORT/healthz" >/dev/null 2>&1; then
+    log "port $API_PORT already serving a healthy PdM API; reusing it."
+    API_ALREADY_OK=1
+  else
+    err "port $API_PORT is in use by something else (not the PdM API)."
+    err "what's listening:"
+    lsof -nP -iTCP:"$API_PORT" -sTCP:LISTEN 2>&1 | sed -n '1,4p' >&2 || true
+    err ""
+    err "fix it by either:"
+    err "  - killing that process    (e.g.  kill <pid>)"
+    err "  - using a different port  (e.g.  API_PORT=8001 ./start.sh)"
+    exit 1
+  fi
+fi
+
+if [[ $API_ALREADY_OK -eq 0 ]]; then
   if [[ "$MODE" == docker ]]; then
     log "starting Docker API on :$API_PORT (container=$CONTAINER, image=$IMAGE)..."
     docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
@@ -157,7 +180,8 @@ else
   else
     log "starting uvicorn (local) on :$API_PORT..."
     PDM_EXTRA_CORS_ORIGINS="$EXTRA_CORS" \
-      .venv/bin/uvicorn api.server:app --host 0.0.0.0 --port "$API_PORT" \
+      "$VENV_PY" -m uvicorn api.server:app \
+      --host 0.0.0.0 --port "$API_PORT" \
       > "$LOG_DIR/api.log" 2>&1 &
     PIDS+=($!)
   fi
@@ -180,7 +204,7 @@ if [[ $WITH_MLFLOW -eq 1 ]]; then
     WITH_MLFLOW=0
   else
     log "starting MLflow UI on :$MLFLOW_PORT (file store at ./mlruns)..."
-    .venv/bin/mlflow ui \
+    "$VENV_PY" -m mlflow ui \
       --backend-store-uri "file://$PWD/mlruns" \
       --host 0.0.0.0 --port "$MLFLOW_PORT" \
       > "$LOG_DIR/mlflow.log" 2>&1 &
