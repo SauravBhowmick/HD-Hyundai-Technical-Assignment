@@ -42,4 +42,10 @@ web/tsconfig.tsbuildinfo
 # Editor
 .idea/
 .vscode/
+
+# Microsoft Office lock/temp files (created while .docx/.xlsx/etc. are open).
+# Do not commit: invalid content and can embed author metadata (~$...).
+~$*.docx
+~$*
+
 archive/PdM_telemetry.csv
