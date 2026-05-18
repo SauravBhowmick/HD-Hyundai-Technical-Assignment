@@ -4,6 +4,23 @@ A reproducible Python ML/MLOps pipeline for the Microsoft Azure Predictive
 Maintenance dataset, exposed as both a Typer CLI and a FastAPI service, and
 served by a React/Vite/TypeScript dashboard.
 
+## Interview context & attribution
+
+This repository is **candidate work** produced for the **HD Hyundai technical
+interview** (Germany). The **requirements, problem framing, and evaluation
+expectations** — predictive maintenance, digital twin–style API responses,
+reproducible ML/MLOps tooling, and demonstration quality — follow the
+interview brief and the discussion with **Hyundai interviewers**. The **Azure
+PdM dataset** (`PdM_*.csv`) is the standard benchmark used in that assignment.
+
+Everything **implemented here** — architecture, feature engineering, train/test
+design, model choice, API/UI behaviour, Docker/MLflow orchestration, upload
+flow, tests, and documentation — is **original implementation and analysis by
+Saurav Bhowmick**, unless a third-party library or public dataset is explicitly
+cited elsewhere in this document. The interviewers’ brief does not constitute a
+grant of rights to this code; the MIT `LICENSE` applies as stated there. A
+short parallel summary lives in **`NOTICE`**.
+
 For a given `(machineID, timestamp)` the system returns a structured
 **digital twin**:
 
