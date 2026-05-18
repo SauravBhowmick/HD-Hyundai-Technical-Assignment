@@ -1,0 +1,13 @@
+PdM Digital Twin — attribution
+==============================
+
+This codebase was produced as **technical interview work** for **HD Hyundai**
+(Germany). The **requirements, problem framing, and dataset** (Azure PdM
+`PdM_*.csv`) follow the **technical interview assignment** and the expectations
+communicated by **Hyundai interviewers**.
+
+Implementation, design decisions, and documentation in this repository are
+**original work by Saurav Bhowmick** (see `README.md`). This notice does not
+imply endorsement by HD Hyundai.
+
+For license terms, see `LICENSE` (MIT).
