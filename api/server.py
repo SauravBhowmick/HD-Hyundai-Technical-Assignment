@@ -562,15 +562,21 @@ def create_app() -> FastAPI:
 
     # Per-model + comparison plots produced by `pdm.train`. The endpoint lists
     # the *available* files so the UI doesn't hard-code names; actual streaming
-    # is allowlisted (filename must match what /plots returned) to keep the
-    # route immune to path traversal.
+    # is allowlisted (filename must match what /plots returned) AND containment-
+    # checked against the resolved plots_dir, so the route is robust to path
+    # traversal *and* symlink-based escapes from a co-tenant on a shared volume.
 
     def _list_plots() -> list[str]:
         d = resolve_path(cfg, "plots_dir")
-        if not d.is_dir():
+        if not d.is_dir() or d.is_symlink():
             return []
+        # `is_symlink()` is checked *before* `is_file()` because `Path.is_file()`
+        # follows symlinks and would happily report True for a symlink that
+        # targets a regular file outside plots_dir.
         return sorted(p.name for p in d.iterdir()
-                      if p.is_file() and p.suffix.lower() == ".png")
+                      if p.suffix.lower() == ".png"
+                      and not p.is_symlink()
+                      and p.is_file())
 
     def _group_plots(names: list[str]) -> dict[str, list[str]]:
         """Group filenames into UI-friendly buckets."""
@@ -601,15 +607,36 @@ def create_app() -> FastAPI:
     @app.get("/plots/{name}")
     def get_plot(name: str) -> FileResponse:
         _require_session()
-        # Path-traversal defence: name must be one of the listed files (so it
-        # cannot contain /, .., absolute paths, etc. -- those would never match).
+
+        # Layer 1 -- name must be one of the listed files (so it cannot contain
+        # /, .., absolute paths, etc.; those would never match). The listing
+        # itself already filters out symlinks (see `_list_plots`).
         if name not in set(_list_plots()):
             raise HTTPException(404, detail=f"unknown plot '{name}'")
-        path = resolve_path(cfg, "plots_dir") / name
-        # Cache headers: artifacts can change on every upload, so use a short
-        # max-age to be safe; the UI can also fingerprint URLs if needed.
-        return FileResponse(path, media_type="image/png",
-                            headers={"Cache-Control": "public, max-age=60"})
+
+        # Layer 2 -- containment check on the *resolved* path. This is the
+        # defence in depth that survives symlinks added between listing and
+        # serving, or path-normalisation surprises.
+        plots_dir = resolve_path(cfg, "plots_dir").resolve()
+        candidate = (plots_dir / name).resolve()
+        try:
+            candidate.relative_to(plots_dir)
+        except ValueError:
+            raise HTTPException(404, detail=f"unknown plot '{name}'")
+
+        # Layer 3 -- TOCTOU guard. The file could have been removed/replaced
+        # between the listing check and now (concurrent upload, manual cleanup,
+        # symlink swap, ...). A missing or non-regular target gives a clean
+        # 404 rather than bubbling up a 500 from FileResponse.
+        if not candidate.is_file():
+            raise HTTPException(404, detail=f"unknown plot '{name}'")
+
+        # Cache-Control: artifacts are derived from a user's upload, so they
+        # must not be cached by shared proxies and replayed to other clients.
+        # `private` scopes caching to the requesting user-agent; short max-age
+        # keeps tab reloads cheap.
+        return FileResponse(candidate, media_type="image/png",
+                            headers={"Cache-Control": "private, max-age=60"})
 
     return app
 
