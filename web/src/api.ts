@@ -4,11 +4,17 @@ import {
   HistoryPoint,
   MachineInfo,
   PipelineResult,
+  PlotsManifest,
   SessionStatus,
   SlotKey,
 } from "./types";
 
 const BASE = import.meta.env.VITE_API_BASE ?? "/api";
+
+export const API_BASE = BASE;
+export function plotUrl(name: string): string {
+  return `${BASE}/plots/${encodeURIComponent(name)}`;
+}
 
 async function jsonOrThrow<T>(resp: Response): Promise<T> {
   if (!resp.ok) {
@@ -70,4 +76,8 @@ export async function uploadAndRun(
   return jsonOrThrow<PipelineResult>(
     await fetch(`${BASE}/upload-and-run`, { method: "POST", body: fd })
   );
+}
+
+export async function listPlots(): Promise<PlotsManifest> {
+  return jsonOrThrow<PlotsManifest>(await fetch(`${BASE}/plots`));
 }

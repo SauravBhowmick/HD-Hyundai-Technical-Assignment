@@ -40,6 +40,7 @@ from typing import Any
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from pdm.config import load_config, resolve_path
@@ -556,6 +557,59 @@ def create_app() -> FastAPI:
         if not p.exists():
             raise HTTPException(404, detail="no metrics; train first")
         return json.loads(p.read_text())
+
+    # -- model plots (PR / ROC) ---------------------------------------------
+
+    # Per-model + comparison plots produced by `pdm.train`. The endpoint lists
+    # the *available* files so the UI doesn't hard-code names; actual streaming
+    # is allowlisted (filename must match what /plots returned) to keep the
+    # route immune to path traversal.
+
+    def _list_plots() -> list[str]:
+        d = resolve_path(cfg, "plots_dir")
+        if not d.is_dir():
+            return []
+        return sorted(p.name for p in d.iterdir()
+                      if p.is_file() and p.suffix.lower() == ".png")
+
+    def _group_plots(names: list[str]) -> dict[str, list[str]]:
+        """Group filenames into UI-friendly buckets."""
+        groups: dict[str, list[str]] = {
+            "actual_comparison": [],
+            "actual_per_model": [],
+            "other": [],
+        }
+        for n in names:
+            if n.endswith("_comparison.png"):
+                groups["actual_comparison"].append(n)
+            elif n.startswith(("pr_curve_", "roc_curve_", "prob_hist_")):
+                groups["actual_per_model"].append(n)
+            else:
+                groups["other"].append(n)
+        return groups
+
+    @app.get("/plots")
+    def plots_manifest() -> dict[str, Any]:
+        _require_session()
+        names = _list_plots()
+        return {
+            "count": len(names),
+            "available": names,
+            "groups": _group_plots(names),
+        }
+
+    @app.get("/plots/{name}")
+    def get_plot(name: str) -> FileResponse:
+        _require_session()
+        # Path-traversal defence: name must be one of the listed files (so it
+        # cannot contain /, .., absolute paths, etc. -- those would never match).
+        if name not in set(_list_plots()):
+            raise HTTPException(404, detail=f"unknown plot '{name}'")
+        path = resolve_path(cfg, "plots_dir") / name
+        # Cache headers: artifacts can change on every upload, so use a short
+        # max-age to be safe; the UI can also fingerprint URLs if needed.
+        return FileResponse(path, media_type="image/png",
+                            headers={"Cache-Control": "public, max-age=60"})
 
     return app
 

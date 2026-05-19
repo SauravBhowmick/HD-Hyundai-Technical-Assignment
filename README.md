@@ -253,11 +253,25 @@ The LightGBM model is selected automatically (highest PR-AUC) and persisted
 as `artifacts/model.joblib`. Threshold = **0.686**, chosen to maximise F1 on
 the test slice.
 
-Plots in `artifacts/plots/`:
+Plots in `artifacts/plots/` (all of them are scored on the **held-out test
+split only** — see `src/pdm/train.py` lines 79–138, where `time_split`
+yields `(X_train, X_test)` and every plotted run uses
+`predict_proba(X_test_fit)`; training rows never enter the curves):
 
-* `pr_curve_{baseline_lr,lightgbm_v1}.png`
-* `roc_curve_{baseline_lr,lightgbm_v1}.png`
-* `prob_hist_{baseline_lr,lightgbm_v1}.png`
+* Per-model: `pr_curve_{baseline_lr,lightgbm_v1}.png`,
+  `roc_curve_{baseline_lr,lightgbm_v1}.png`,
+  `prob_hist_{baseline_lr,lightgbm_v1}.png`.
+* **Side-by-side comparison** (both models on the same axes, AUC printed in
+  the legend, no-skill reference line):
+  `pr_curve_comparison.png`, `roc_curve_comparison.png`.
+
+![Actual data — PR curves](artifacts/plots/pr_curve_comparison.png)
+![Actual data — ROC curves](artifacts/plots/roc_curve_comparison.png)
+
+The frontend renders all of these in a **Model curves** card on the welcome
+view, with `Comparison` / `Per-model` tabs. The PNGs are served by
+`GET /plots/{name}` (allowlisted against `GET /plots`, so the route is not
+vulnerable to path traversal).
 
 ## Design decisions and justifications
 

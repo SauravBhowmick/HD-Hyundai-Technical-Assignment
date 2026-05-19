@@ -21,7 +21,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from .config import resolve_path
-from .evaluate import evaluate_predictions, write_metrics
+from .evaluate import evaluate_predictions, plot_curve_comparison, write_metrics
 from .features import build_features, feature_columns
 from .io import load_raw
 from .labels import label_in_window
@@ -109,6 +109,7 @@ def train(cfg: dict[str, Any]) -> dict[str, Any]:
         ("lightgbm_v1", _build_lgbm(lgbm_params), lgbm_params),
     ]
 
+    curve_runs: list[dict[str, Any]] = []
     for name, model, params in runs:
         with mlflow.start_run(run_name=name):
             mlflow.log_params({**{f"p_{k}": v for k, v in params.items()},
@@ -130,10 +131,19 @@ def train(cfg: dict[str, Any]) -> dict[str, Any]:
                   f"P={metrics['precision']:.3f}  R={metrics['recall']:.3f}  "
                   f"thr={metrics['threshold']:.3f}")
             parent_metrics["runs"][name] = metrics
+            curve_runs.append({
+                "label": name,
+                "y_true": y_test_fit.values,
+                "y_prob": y_prob,
+            })
             if metrics["pr_auc"] > best_run["pr_auc"]:
                 best_run = {"name": name, "pr_auc": metrics["pr_auc"],
                             "model": model, "threshold": metrics["threshold"],
                             "metrics": metrics}
+
+    cmp_paths = plot_curve_comparison(curve_runs, plots_dir, suffix="comparison",
+                                      title_prefix="Actual data: ")
+    print(f"[train] wrote comparison plots:\n  {cmp_paths['pr']}\n  {cmp_paths['roc']}")
 
     model_file = resolve_path(cfg, "model_file")
     threshold_file = resolve_path(cfg, "threshold_file")
