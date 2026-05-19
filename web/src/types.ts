@@ -81,3 +81,13 @@ export interface PipelineResult {
   error?: string | null;
   error_id?: string | null;
 }
+
+export interface PlotsManifest {
+  count: number;
+  available: string[];
+  groups: {
+    actual_comparison: string[];
+    actual_per_model: string[];
+    other: string[];
+  };
+}

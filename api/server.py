@@ -40,6 +40,7 @@ from typing import Any
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from pdm.config import load_config, resolve_path
@@ -556,6 +557,86 @@ def create_app() -> FastAPI:
         if not p.exists():
             raise HTTPException(404, detail="no metrics; train first")
         return json.loads(p.read_text())
+
+    # -- model plots (PR / ROC) ---------------------------------------------
+
+    # Per-model + comparison plots produced by `pdm.train`. The endpoint lists
+    # the *available* files so the UI doesn't hard-code names; actual streaming
+    # is allowlisted (filename must match what /plots returned) AND containment-
+    # checked against the resolved plots_dir, so the route is robust to path
+    # traversal *and* symlink-based escapes from a co-tenant on a shared volume.
+
+    def _list_plots() -> list[str]:
+        d = resolve_path(cfg, "plots_dir")
+        if not d.is_dir() or d.is_symlink():
+            return []
+        # `is_symlink()` is checked *before* `is_file()` because `Path.is_file()`
+        # follows symlinks and would happily report True for a symlink that
+        # targets a regular file outside plots_dir.
+        return sorted(p.name for p in d.iterdir()
+                      if p.suffix.lower() == ".png"
+                      and not p.is_symlink()
+                      and p.is_file())
+
+    def _group_plots(names: list[str]) -> dict[str, list[str]]:
+        """Group filenames into UI-friendly buckets."""
+        groups: dict[str, list[str]] = {
+            "actual_comparison": [],
+            "actual_per_model": [],
+            "other": [],
+        }
+        for n in names:
+            if n.endswith("_comparison.png"):
+                groups["actual_comparison"].append(n)
+            elif n.startswith(("pr_curve_", "roc_curve_", "prob_hist_")):
+                groups["actual_per_model"].append(n)
+            else:
+                groups["other"].append(n)
+        return groups
+
+    @app.get("/plots")
+    def plots_manifest() -> dict[str, Any]:
+        _require_session()
+        names = _list_plots()
+        return {
+            "count": len(names),
+            "available": names,
+            "groups": _group_plots(names),
+        }
+
+    @app.get("/plots/{name}")
+    def get_plot(name: str) -> FileResponse:
+        _require_session()
+
+        # Layer 1 -- name must be one of the listed files (so it cannot contain
+        # /, .., absolute paths, etc.; those would never match). The listing
+        # itself already filters out symlinks (see `_list_plots`).
+        if name not in set(_list_plots()):
+            raise HTTPException(404, detail=f"unknown plot '{name}'")
+
+        # Layer 2 -- containment check on the *resolved* path. This is the
+        # defence in depth that survives symlinks added between listing and
+        # serving, or path-normalisation surprises.
+        plots_dir = resolve_path(cfg, "plots_dir").resolve()
+        candidate = (plots_dir / name).resolve()
+        try:
+            candidate.relative_to(plots_dir)
+        except ValueError:
+            raise HTTPException(404, detail=f"unknown plot '{name}'")
+
+        # Layer 3 -- TOCTOU guard. The file could have been removed/replaced
+        # between the listing check and now (concurrent upload, manual cleanup,
+        # symlink swap, ...). A missing or non-regular target gives a clean
+        # 404 rather than bubbling up a 500 from FileResponse.
+        if not candidate.is_file():
+            raise HTTPException(404, detail=f"unknown plot '{name}'")
+
+        # Cache-Control: artifacts are derived from a user's upload, so they
+        # must not be cached by shared proxies and replayed to other clients.
+        # `private` scopes caching to the requesting user-agent; short max-age
+        # keeps tab reloads cheap.
+        return FileResponse(candidate, media_type="image/png",
+                            headers={"Cache-Control": "private, max-age=60"})
 
     return app
 

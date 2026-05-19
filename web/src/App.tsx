@@ -7,6 +7,7 @@ import { DigitalTwinCard } from "./components/DigitalTwinCard";
 import { TelemetryChart } from "./components/TelemetryChart";
 import { EventTimeline } from "./components/EventTimeline";
 import { UploadView } from "./components/UploadView";
+import { ModelPlotsCard } from "./components/ModelPlotsCard";
 
 function plusHours(iso: string, hours: number): string {
   const d = new Date(iso);
@@ -185,6 +186,8 @@ function Dashboard({ session, onReset }: DashboardProps) {
             )}
           </div>
         )}
+
+        {!twin && <ModelPlotsCard />}
 
         {twin && (
           <div className="row-gap">

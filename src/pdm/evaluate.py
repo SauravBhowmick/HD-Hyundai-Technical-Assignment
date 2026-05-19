@@ -122,7 +122,7 @@ def _plot_pr(y_true, y_prob, pr_auc, path: Path, label: str) -> None:
     ax.plot(recall, precision, lw=2)
     ax.set_xlabel("Recall")
     ax.set_ylabel("Precision")
-    ax.set_title(f"{label}  PR curve (AP={pr_auc:.3f})")
+    ax.set_title(f"{label}  PR curve (AP={pr_auc:.3f})  -- test set")
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     fig.savefig(path, dpi=130)
@@ -136,7 +136,7 @@ def _plot_roc(y_true, y_prob, roc_auc, path: Path, label: str) -> None:
     ax.plot([0, 1], [0, 1], "--", lw=1)
     ax.set_xlabel("FPR")
     ax.set_ylabel("TPR")
-    ax.set_title(f"{label}  ROC curve (AUC={roc_auc:.3f})")
+    ax.set_title(f"{label}  ROC curve (AUC={roc_auc:.3f})  -- test set")
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     fig.savefig(path, dpi=130)
@@ -149,11 +149,82 @@ def _plot_hist(y_prob, threshold, path: Path, label: str) -> None:
     ax.axvline(threshold, color="red", linestyle="--", label=f"threshold={threshold:.3f}")
     ax.set_xlabel("predicted probability")
     ax.set_ylabel("count")
-    ax.set_title(f"{label}  probability distribution")
+    ax.set_title(f"{label}  probability distribution (test set)")
     ax.legend()
     fig.tight_layout()
     fig.savefig(path, dpi=130)
     plt.close(fig)
+
+
+def plot_curve_comparison(
+    runs: list[dict[str, Any]],
+    plots_dir: Path,
+    suffix: str = "comparison",
+    title_prefix: str = "",
+) -> dict[str, Path]:
+    """Overlay PR and ROC curves for ``len(runs)`` models on a single chart each.
+
+    ``runs`` is a list of dicts with keys ``label``, ``y_true``, ``y_prob``.
+    Each curve's legend label is the model name plus its AUC, so the chart
+    is self-describing. Also draws a baseline:
+
+    * PR: positive-class prevalence (a no-skill classifier saturates here).
+    * ROC: the y=x diagonal.
+
+    Returns ``{"pr": Path, "roc": Path}`` to the produced PNGs.
+    """
+    plots_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- PR ---
+    fig, ax = plt.subplots(figsize=(6, 4.5))
+    prevalence_seen: float | None = None
+    for run in runs:
+        y_true = np.asarray(run["y_true"]).astype(int)
+        y_prob = np.asarray(run["y_prob"]).astype(float)
+        precision, recall, _ = precision_recall_curve(y_true, y_prob)
+        ap = float(average_precision_score(y_true, y_prob))
+        ax.plot(recall, precision, lw=2, label=f"{run['label']}  AP={ap:.3f}")
+        if prevalence_seen is None and len(y_true):
+            prevalence_seen = float(y_true.mean())
+    if prevalence_seen is not None:
+        ax.axhline(prevalence_seen, color="grey", lw=1, linestyle=":",
+                   label=f"no-skill (prevalence={prevalence_seen:.3f})")
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
+    base_pr = "PR curves (test set)"
+    ax.set_title(f"{title_prefix}{base_pr}" if title_prefix else base_pr)
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.05)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="lower left", fontsize=9, framealpha=0.95)
+    fig.tight_layout()
+    pr_path = plots_dir / f"pr_curve_{suffix}.png"
+    fig.savefig(pr_path, dpi=130)
+    plt.close(fig)
+
+    # --- ROC ---
+    fig, ax = plt.subplots(figsize=(6, 4.5))
+    for run in runs:
+        y_true = np.asarray(run["y_true"]).astype(int)
+        y_prob = np.asarray(run["y_prob"]).astype(float)
+        fpr, tpr, _ = roc_curve(y_true, y_prob)
+        auc = float(roc_auc_score(y_true, y_prob))
+        ax.plot(fpr, tpr, lw=2, label=f"{run['label']}  AUC={auc:.3f}")
+    ax.plot([0, 1], [0, 1], color="grey", lw=1, linestyle=":", label="no-skill (AUC=0.500)")
+    ax.set_xlabel("False positive rate")
+    ax.set_ylabel("True positive rate")
+    base_roc = "ROC curves (test set)"
+    ax.set_title(f"{title_prefix}{base_roc}" if title_prefix else base_roc)
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.05)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="lower right", fontsize=9, framealpha=0.95)
+    fig.tight_layout()
+    roc_path = plots_dir / f"roc_curve_{suffix}.png"
+    fig.savefig(roc_path, dpi=130)
+    plt.close(fig)
+
+    return {"pr": pr_path, "roc": roc_path}
 
 
 def write_metrics(metrics: dict[str, Any], path: Path) -> None:
