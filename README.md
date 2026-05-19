@@ -439,6 +439,8 @@ written to `artifacts/drift_report.md`. PSI bands follow the standard
 | `POST` | `/predict` | digital-twin JSON for `{machineID, timestamp}` |
 | `GET`  | `/history/{machineID}` | telemetry + events between `start` and `end` |
 | `GET`  | `/metrics` | the last `metrics.json` |
+| `GET`  | `/plots` | list available plot PNGs: `{count, available, groups}` (allowlist for `/plots/{name}`) |
+| `GET`  | `/plots/{name}` | stream a specific PNG (`image/png`) for `name` returned by `/plots`; `404` otherwise |
 
 CORS is enabled for the documented dev origins (5173, 5174, 4173).
 
