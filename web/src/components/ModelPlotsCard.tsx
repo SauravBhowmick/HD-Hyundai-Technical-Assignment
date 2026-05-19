@@ -24,13 +24,16 @@ export function ModelPlotsCard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
     (async () => {
       try {
-        setManifest(await listPlots());
+        const data = await listPlots();
+        if (mounted) setManifest(data);
       } catch (e: any) {
-        setError(String(e?.message ?? e));
+        if (mounted) setError(String(e?.message ?? e));
       }
     })();
+    return () => { mounted = false; };
   }, []);
 
   const visible = useMemo(() => {
