@@ -101,7 +101,7 @@ flowchart LR
     subgraph api ["FastAPI"]
         UPL["POST /upload-and-run<br/>lock + size cap + staging"]
         SESS["artifacts/.session.json<br/>sentinel"]
-        READ["GET /info, /machines<br/>POST /predict<br/>GET /history, /metrics"]
+        READ["GET /info, /machines<br/>POST /predict<br/>GET /history, /metrics<br/>GET /plots, /plots/{name}"]
         UPL --> STAGE
         UPL -. "on success" .-> COMMIT
         COMMIT --> SESS
@@ -115,7 +115,7 @@ flowchart LR
         VAL --> FEAT["pdm.features<br/>rolling 3h, 24h, 72h<br/>error counts<br/>hours since maint<br/>age_at_t"]
         FEAT --> LAB["pdm.labels<br/>fail in (t, t+24h]"]
         LAB --> SPLIT["pdm.split<br/>cutoff 2015-10-01"]
-        SPLIT --> TRAIN["pdm.train<br/>baseline LR + LightGBM<br/>MLflow runs"]
+        SPLIT --> TRAIN["pdm.train<br/>baseline LR + LightGBM"]
         TRAIN --> EVAL["pdm.evaluate<br/>PR-AUC, ROC-AUC, P, R, CM<br/>false alarms per machine-month"]
         TRAIN --> DRIFT["pdm.drift PSI report"]
     end
@@ -125,10 +125,12 @@ flowchart LR
 
     subgraph canonical ["Canonical state"]
         RAW["data/raw/PdM_*.csv"]
-        ART["artifacts/model.joblib<br/>metrics.json, threshold.json<br/>drift_report.md, plots"]
+        ART["artifacts/model.joblib<br/>metrics.json, threshold.json<br/>feature_hash.txt<br/>drift_report.md, plots/"]
+        MLRUNS["mlruns/<br/>(global, NOT staged --<br/>persists across uploads)"]
     end
     COMMIT --> RAW
     COMMIT --> ART
+    TRAIN -. "log runs" .-> MLRUNS
 
     READ --> PRED["pdm.predict"]
     PRED --> HEALTH["pdm.health<br/>state + prescription"]
@@ -140,6 +142,7 @@ flowchart LR
 
     CLI["Typer CLI<br/>validate, train, evaluate, predict, drift"] -.->|"headless,<br/>writes directly"| ART
     CLI -.-> RAW
+    CLI -.-> MLRUNS
 ```
 
 Lifecycle:
@@ -436,6 +439,8 @@ written to `artifacts/drift_report.md`. PSI bands follow the standard
 | `POST` | `/predict` | digital-twin JSON for `{machineID, timestamp}` |
 | `GET`  | `/history/{machineID}` | telemetry + events between `start` and `end` |
 | `GET`  | `/metrics` | the last `metrics.json` |
+| `GET`  | `/plots` | list available plot PNGs: `{count, available, groups}` (allowlist for `/plots/{name}`) |
+| `GET`  | `/plots/{name}` | stream a specific PNG (`image/png`) for `name` returned by `/plots`; `404` otherwise |
 
 CORS is enabled for the documented dev origins (5173, 5174, 4173).
 
