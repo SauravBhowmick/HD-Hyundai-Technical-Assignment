@@ -21,6 +21,23 @@ cited elsewhere in this document. The interviewers’ brief does not constitute 
 grant of rights to this code; the MIT `LICENSE` applies as stated there. A
 short parallel summary lives in **`NOTICE`**.
 
+### Supplementary materials (optional, external)
+
+This repository is **public and self-contained** for building, training, and
+running the stack — `make install && make train && make api` (or
+`./start.sh`) needs no external resources beyond what is checked in. The
+interview brief itself and the bundled raw CSVs live under `data/raw/` and
+`Technical Interview Assignment.docx` in this repo.
+
+A **presentation** prepared for the HD Hyundai technical interview is kept
+in a private Google Drive folder and will be **shared once the interview
+process is complete** (it’s kept out of this public repo until then):
+
+- [Supplementary Google Drive folder](https://drive.google.com/drive/folders/1b-ywJIcJbB14teUfbZRWqO4Rqn-4XXzC) *(optional; access-restricted until the interview is closed; contents are not version-locked and may change over time)*
+
+Anything authoritative for grading or reproduction is in this repo, not in
+that folder.
+
 For a given `(machineID, timestamp)` the system returns a structured
 **digital twin**:
 
