@@ -21,6 +21,15 @@ cited elsewhere in this document. The interviewers’ brief does not constitute 
 grant of rights to this code; the MIT `LICENSE` applies as stated there. A
 short parallel summary lives in **`NOTICE`**.
 
+### Reference materials
+
+Supporting materials for this submission (interview brief, raw dataset
+download, screenshots, demo recordings, etc.) live in this shared folder:
+
+- [HD Hyundai interview submission — reference folder (Google Drive)](https://drive.google.com/drive/folders/1b-ywJIcJbB14teUfbZRWqO4Rqn-4XXzC)
+
+Use it as the canonical reference for anything not checked into this repo.
+
 For a given `(machineID, timestamp)` the system returns a structured
 **digital twin**:
 
