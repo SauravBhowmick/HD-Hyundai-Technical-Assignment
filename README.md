@@ -217,15 +217,33 @@ remains gated until at least one upload has succeeded.
 .venv/bin/python -m pdm.cli validate
 ```
 
-### Docker
+### Docker (single all-in-one image)
 
 ```bash
-make docker           # builds and runs validate + train + drift inside the image
-make docker-run       # serves the API on :8000
+make docker           # multi-stage build: Node compiles the React app,
+                      # Python image runs validate + train + drift + pytest.
+make docker-run       # serves API *and* the bundled React UI on :8000
 ```
 
-The image runs the **whole pipeline** at build time, so the resulting
-container ships with a trained model and the metrics + drift artefacts.
+Then open <http://localhost:8000> -- the React dashboard is served by the
+same FastAPI process that owns `/healthz`, `/predict`, `/upload-and-run`,
+etc. There is no separate web container, no Node on the host, no `npm
+install`, and no extra port to publish. Reviewers need **Docker only**.
+
+How it's wired:
+
+* **Stage 1** (`node:20-alpine`) does `npm ci && npm run build` with
+  `VITE_API_BASE=""`, so the resulting bundle issues same-origin requests
+  (`fetch("/healthz")`, not `fetch("/api/healthz")`).
+* **Stage 2** (`python:3.11-slim`) installs the backend, runs the ML
+  pipeline once at build time (so the image ships with a trained model +
+  drift report + pytest pass), then `COPY --from=web-build /web/dist
+  ./web/dist`.
+* `api/server.py` checks for `web/dist/index.html` at startup; if present
+  it mounts `StaticFiles(directory=..., html=True)` at `/` *after* every
+  API route, so explicit routes win and unmatched paths fall through to
+  the SPA. If absent (typical dev), `/` returns a JSON landing payload
+  with `/docs`, `/healthz`, `/session` links instead.
 
 ### MLflow UI
 

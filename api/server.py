@@ -41,6 +41,7 @@ import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from pdm.config import load_config, resolve_path
@@ -288,6 +289,33 @@ def create_app() -> FastAPI:
         state["frames"] = None
 
     # -- health & session ----------------------------------------------------
+
+    # Compute the SPA bundle location once. The image's Dockerfile copies the
+    # Vite build output to /app/web/dist; in dev we just don't ship a bundle
+    # and Vite serves the SPA on :5173 instead.
+    spa_dir = (Path(__file__).resolve().parent.parent / "web" / "dist").resolve()
+    has_spa = (spa_dir / "index.html").is_file()
+
+    if not has_spa:
+        # Pure-API mode (no SPA bundled). Give the bare URL a friendly JSON
+        # landing so browsers don't see {"detail":"Not Found"} and assume the
+        # server is broken.
+        @app.get("/", include_in_schema=False)
+        def root() -> dict[str, Any]:
+            return {
+                "service": "pdm-digital-twin",
+                "status": "ok",
+                "mode": "api-only (no SPA bundle found at web/dist/)",
+                "docs": "/docs",
+                "openapi": "/openapi.json",
+                "healthz": "/healthz",
+                "session": "/session",
+                "hint": (
+                    "POST 5 CSVs (telemetry, errors, failures, machines, "
+                    "maint) to /upload-and-run to start a session; analysis "
+                    "endpoints are 409 until then."
+                ),
+            }
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
@@ -637,6 +665,19 @@ def create_app() -> FastAPI:
         # keeps tab reloads cheap.
         return FileResponse(candidate, media_type="image/png",
                             headers={"Cache-Control": "private, max-age=60"})
+
+    # -- SPA static bundle ---------------------------------------------------
+    #
+    # Mounted last on purpose: explicit routes registered above (every
+    # /healthz, /info, /predict, /plots/..., /upload-and-run, /session, etc.)
+    # take precedence in Starlette's routing table. StaticFiles only handles
+    # paths that didn't match any of them.
+    #
+    # `html=True` makes the mount serve index.html for `/` and for any path
+    # that maps to a directory; combined with the catch-all behaviour, this
+    # also covers deep links into the SPA if we ever add client-side routing.
+    if has_spa:
+        app.mount("/", StaticFiles(directory=str(spa_dir), html=True), name="spa")
 
     return app
 
