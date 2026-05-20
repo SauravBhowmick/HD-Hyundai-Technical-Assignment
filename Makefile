@@ -1,4 +1,4 @@
-.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run compose-up compose-down prepare start start-docker start-with-docker clean all
+.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run compose-up compose-down start clean all
 
 PYTHON ?= python3
 VENV ?= .venv
@@ -20,14 +20,11 @@ help:
 	@echo "  web-install install web deps"
 	@echo "  web         start the Vite dev server (:5173)"
 	@echo "  web-build   build the web app for production"
-	@echo "  docker      build the all-in-one Docker image (Node + Python)"
-	@echo "  docker-run  bring up API (:8000) + MLflow UI (:5050) via docker compose"
+	@echo "  docker       build the all-in-one Docker image (Node + Python)"
+	@echo "  docker-run   bring up API (:8000) + MLflow UI (:5050) via docker compose"
 	@echo "  compose-up   same as docker-run but force-rebuilds the image first"
 	@echo "  compose-down docker compose down (stop + remove the stack)"
-	@echo "  prepare      one-off: build pdm image + pull MLflow image, then exit"
-	@echo "  start             local API + web + MLflow UI (./start.sh)"
-	@echo "  start-docker      Docker API + web + MLflow UI"
-	@echo "  start-with-docker local API AND side-by-side Docker + web + MLflow UI"
+	@echo "  start        ./start.sh -- compose stack + health checks + banner"
 	@echo "  all         install -> train -> drift -> test"
 	@echo "  clean       remove build artifacts"
 
@@ -72,25 +69,16 @@ docker:
 	docker build -t pdm-digital-twin .
 
 docker-run:
-	docker compose up
+	docker compose up --remove-orphans
 
 compose-up:
-	docker compose up --build
+	docker compose up --build --remove-orphans
 
 compose-down:
-	docker compose down
-
-prepare:
-	./start.sh --prepare
+	docker compose down --remove-orphans
 
 start:
 	./start.sh
-
-start-docker:
-	./start.sh --docker
-
-start-with-docker:
-	./start.sh --with-docker
 
 all: install train drift test
 	@echo "[all] done. Run 'make api' to start the API."

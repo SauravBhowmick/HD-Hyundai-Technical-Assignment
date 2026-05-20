@@ -223,15 +223,20 @@ remains gated until at least one upload has succeeded.
 ### Docker (API + MLflow UI)
 
 ```bash
-make prepare          # optional one-off: build the pdm image AND pull the
-                      # MLflow image up front (so the first compose-up doesn't
-                      # have to do it inline). Roughly ~3 min on a cold cache.
 make docker           # rebuild just the pdm image (does NOT touch mlflow,
                       # which is an upstream image pulled separately by compose)
 make docker-run       # docker compose up -- brings up two services:
                       #   pdm     -> API + dashboard on :8000
                       #   mlflow  -> MLflow tracking UI on :5050
 make compose-down     # tear the stack down when you're finished
+```
+
+Or, for a friendlier wrapper around the same flow:
+
+```bash
+./start.sh            # docker compose up (cached image) + health checks +
+                      # printed URLs; Ctrl+C tears the stack down cleanly.
+                      # Pass --rebuild to force `docker compose up --build`.
 ```
 
 Then open:
