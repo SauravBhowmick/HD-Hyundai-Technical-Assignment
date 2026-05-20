@@ -128,12 +128,12 @@ wait_for_http() {
     fi
     sleep 1
   done
-  warn "$label did not respond within ${timeout}s -- check 'docker compose logs $3'"
+  warn "$label did not respond within ${timeout}s -- check: docker compose logs \"$label\""
   return 1
 }
 
-wait_for_http "API    :8000" "$API_URL"    90 || true
-wait_for_http "MLflow :5050" "$MLFLOW_URL" 60 || true
+wait_for_http "pdm"    "$API_URL"    90 || true
+wait_for_http "mlflow" "$MLFLOW_URL" 60 || true
 
 # -------- banner --------
 
