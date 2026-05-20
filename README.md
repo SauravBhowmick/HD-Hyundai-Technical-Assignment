@@ -220,20 +220,34 @@ remains gated until at least one upload has succeeded.
 .venv/bin/python -m pdm.cli validate
 ```
 
-### Docker (single all-in-one image)
+### Docker (API + MLflow UI)
 
 ```bash
 make docker           # multi-stage build: Node compiles the React app,
                       # Python image runs validate + train + drift + pytest.
-make docker-run       # serves API *and* the bundled React UI on :8000
+make docker-run       # docker compose up -- brings up two services:
+                      #   pdm     -> API + dashboard on :8000
+                      #   mlflow  -> MLflow tracking UI on :5050
+make compose-down     # tear the stack down when you're finished
 ```
 
-Then open <http://localhost:8000> -- the React dashboard is served by the
-same FastAPI process that owns `/healthz`, `/predict`, `/upload-and-run`,
-etc. There is no separate web container, no Node on the host, no `npm
-install`, and no extra port to publish. Reviewers need **Docker only**.
+Then open:
 
-How it's wired:
+* PdM API + dashboard : <http://localhost:8000>
+* MLflow tracking UI  : <http://localhost:5050>
+
+`make docker-run` delegates to `docker compose up`, which starts the two
+services declared in `docker-compose.yml`. Both services bind-mount
+`./mlruns/` from the host (`/app/mlruns` inside the PdM container,
+`/mlflow/mlruns` inside the MLflow container), so runs logged by `pdm.train`
+during `/upload-and-run` appear in the MLflow UI immediately, with no
+changes to the training code. (`make compose-up` is the same command plus
+`--build`, useful when you've edited the Dockerfile or Python source.)
+
+There is no separate web container, no Node on the host, no `npm install`,
+and no extra port to publish for the SPA. Reviewers need **Docker only**.
+
+How the PdM image itself is wired:
 
 * **Stage 1** (`node:20-alpine`) does `npm ci && npm run build` with
   `VITE_API_BASE=""`, so the resulting bundle issues same-origin requests
@@ -248,7 +262,15 @@ How it's wired:
   the SPA. If absent (typical dev), `/` returns a JSON landing payload
   with `/docs`, `/healthz`, `/session` links instead.
 
-### MLflow UI
+> Heads-up: `./mlruns/` is gitignored, so on a fresh checkout the MLflow UI
+> will load with no experiments. Either run `make train` once on the host to
+> seed it, or upload a dataset through the dashboard at `:8000` -- both
+> populate `./mlruns/` and runs appear in the UI immediately.
+
+### MLflow UI (host-side, no Docker)
+
+If you don't want the compose stack and just need MLflow against your local
+`./mlruns/` (e.g. after `make train`):
 
 ```bash
 .venv/bin/mlflow ui --backend-store-uri "$PWD/mlruns" --port 5050

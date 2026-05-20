@@ -1,4 +1,4 @@
-.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run start start-docker start-with-docker clean all
+.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run compose-up compose-down start start-docker start-with-docker clean all
 
 PYTHON ?= python3
 VENV ?= .venv
@@ -21,7 +21,9 @@ help:
 	@echo "  web         start the Vite dev server (:5173)"
 	@echo "  web-build   build the web app for production"
 	@echo "  docker      build the all-in-one Docker image (Node + Python)"
-	@echo "  docker-run  run the image (API + bundled React UI on :8000)"
+	@echo "  docker-run  bring up API (:8000) + MLflow UI (:5050) via docker compose"
+	@echo "  compose-up   same as docker-run but force-rebuilds the image first"
+	@echo "  compose-down docker compose down (stop + remove the stack)"
 	@echo "  start             local API + web + MLflow UI (./start.sh)"
 	@echo "  start-docker      Docker API + web + MLflow UI"
 	@echo "  start-with-docker local API AND side-by-side Docker + web + MLflow UI"
@@ -69,7 +71,13 @@ docker:
 	docker build -t pdm-digital-twin .
 
 docker-run:
-	docker run --rm -p 8000:8000 pdm-digital-twin
+	docker compose up
+
+compose-up:
+	docker compose up --build
+
+compose-down:
+	docker compose down
 
 start:
 	./start.sh

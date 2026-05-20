@@ -1,0 +1,38 @@
+# Two-service stack for the PdM Digital Twin demo.
+#
+# - pdm    -> FastAPI + bundled React dashboard on http://localhost:8000
+# - mlflow -> MLflow tracking UI on http://localhost:5050
+#             (file store backed by the same ./mlruns/ as `pdm`)
+#
+# Both services bind-mount the host directory ./mlruns/ so runs logged by
+# `pdm` during /upload-and-run show up in the MLflow UI for free, with no
+# changes to the training code (pdm.train just calls mlflow.set_tracking_uri
+# on the local file store; both containers read/write the same store).
+#
+# Bring it up:           make docker-run     (or: docker compose up)
+# Rebuild then up:       make compose-up     (or: docker compose up --build)
+# Tear it down:          make compose-down   (or: docker compose down)
+#
+# Heads-up: ./mlruns/ is gitignored, so on a fresh checkout it is empty. The
+# MLflow UI will load with "no experiments" until either `make train` runs
+# once on the host or a dataset is uploaded through the dashboard at :8000.
+
+services:
+  pdm:
+    build: .
+    image: pdm-digital-twin
+    ports:
+      - "8000:8000"
+    volumes:
+      # Shared with the mlflow service. This bind-mount also shadows the
+      # mlruns/ baked into the image at build time, so the host directory is
+      # the single source of truth across rebuilds.
+      - ./mlruns:/app/mlruns
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    ports:
+      - "5050:5000"
+    volumes:
+      - ./mlruns:/mlflow/mlruns
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/mlruns

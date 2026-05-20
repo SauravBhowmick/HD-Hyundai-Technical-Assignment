@@ -91,7 +91,7 @@ else
   WEB_API_PORT="$API_PORT"
 fi
 
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" mlruns
 
 VENV_PY=".venv/bin/python"
 
@@ -240,8 +240,15 @@ if [[ $NEED_DOCKER -eq 1 ]]; then
   else
     log "starting Docker API on :$DOCKER_API_PORT (container=$CONTAINER, image=$IMAGE)..."
     docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+    # Share ./mlruns with the host MLflow UI so runs the container logs
+    # during /upload-and-run are visible at http://localhost:$MLFLOW_PORT.
+    # The bind-mount shadows the runs baked into the image at build time,
+    # which is the same trade-off `make docker-run` (i.e. `docker compose
+    # up` via docker-compose.yml) makes -- so the two Docker entrypoints
+    # stay consistent w.r.t. what the MLflow UI sees.
     docker run -d --name "$CONTAINER" \
       -p "$DOCKER_API_PORT:8000" \
+      -v "$PWD/mlruns:/app/mlruns" \
       -e "PDM_EXTRA_CORS_ORIGINS=$EXTRA_CORS" \
       "$IMAGE" \
       > "$LOG_DIR/api.cid" 2>&1
