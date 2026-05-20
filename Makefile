@@ -1,4 +1,4 @@
-.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run compose-up compose-down start start-docker start-with-docker clean all
+.PHONY: help install validate train evaluate drift predict api web web-install web-build test docker docker-run compose-up compose-down prepare start start-docker start-with-docker clean all
 
 PYTHON ?= python3
 VENV ?= .venv
@@ -24,6 +24,7 @@ help:
 	@echo "  docker-run  bring up API (:8000) + MLflow UI (:5050) via docker compose"
 	@echo "  compose-up   same as docker-run but force-rebuilds the image first"
 	@echo "  compose-down docker compose down (stop + remove the stack)"
+	@echo "  prepare      one-off: build pdm image + pull MLflow image, then exit"
 	@echo "  start             local API + web + MLflow UI (./start.sh)"
 	@echo "  start-docker      Docker API + web + MLflow UI"
 	@echo "  start-with-docker local API AND side-by-side Docker + web + MLflow UI"
@@ -78,6 +79,9 @@ compose-up:
 
 compose-down:
 	docker compose down
+
+prepare:
+	./start.sh --prepare
 
 start:
 	./start.sh

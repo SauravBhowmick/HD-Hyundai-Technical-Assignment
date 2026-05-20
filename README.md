@@ -223,8 +223,11 @@ remains gated until at least one upload has succeeded.
 ### Docker (API + MLflow UI)
 
 ```bash
-make docker           # multi-stage build: Node compiles the React app,
-                      # Python image runs validate + train + drift + pytest.
+make prepare          # optional one-off: build the pdm image AND pull the
+                      # MLflow image up front (so the first compose-up doesn't
+                      # have to do it inline). Roughly ~3 min on a cold cache.
+make docker           # rebuild just the pdm image (does NOT touch mlflow,
+                      # which is an upstream image pulled separately by compose)
 make docker-run       # docker compose up -- brings up two services:
                       #   pdm     -> API + dashboard on :8000
                       #   mlflow  -> MLflow tracking UI on :5050

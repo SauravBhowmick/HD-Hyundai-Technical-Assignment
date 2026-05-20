@@ -13,6 +13,10 @@
 #                                  container (on $DOCKER_API_PORT, default 8002).
 #   ./start.sh --docker            Docker only, no local uvicorn.
 #
+# Setup
+#   --prepare      build the pdm image and pull the MLflow image, then exit
+#                  (one-off; warms the cache for `make docker-run`)
+#
 # Toggles
 #   --no-mlflow    skip the MLflow UI
 #   --no-web       skip the Vite dev server (API only)
@@ -42,6 +46,8 @@ LOG_DIR="$SCRIPT_DIR/logs"
 WITH_MLFLOW=1
 WITH_WEB=1
 REBUILD=0
+PREP_ONLY=0
+MLFLOW_IMAGE="ghcr.io/mlflow/mlflow:latest"
 
 usage() {
   cat <<'USAGE'
@@ -54,6 +60,10 @@ Modes:
   ./start.sh                  local uvicorn + web + mlflow (default)
   ./start.sh --with-docker    local AND side-by-side Docker on DOCKER_API_PORT
   ./start.sh --docker         Docker only, no local uvicorn
+
+Setup:
+  ./start.sh --prepare        build the pdm image + pull the MLflow image,
+                              then exit (one-off; warms `make docker-run`)
 
 Toggles:
   --no-mlflow      skip the MLflow UI
@@ -75,6 +85,7 @@ while [[ $# -gt 0 ]]; do
     --local)        MODE=local ;;
     --docker)       MODE=docker ;;
     --with-docker)  MODE=local; WITH_DOCKER=1 ;;
+    --prepare)      PREP_ONLY=1 ;;
     --no-mlflow)    WITH_MLFLOW=0 ;;
     --no-web)       WITH_WEB=0 ;;
     --rebuild)      REBUILD=1 ;;
@@ -163,6 +174,36 @@ require_docker_env() {
     docker build -t "$IMAGE" . | tail -5
   fi
 }
+
+# Warm both Docker images required by the project: the local pdm image
+# (built from Dockerfile) and the upstream MLflow image (pulled from GHCR).
+# Used by `./start.sh --prepare` so the first `make docker-run` doesn't have
+# to pull/build inline.
+prepare_images() {
+  require_docker_env
+  if docker image inspect "$MLFLOW_IMAGE" >/dev/null 2>&1; then
+    log "image already present: $MLFLOW_IMAGE ✓"
+  else
+    log "pulling $MLFLOW_IMAGE (one-off, ~300 MB compressed)..."
+    docker pull "$MLFLOW_IMAGE" | tail -5
+  fi
+  log ""
+  log "Docker images ready:"
+  docker images --format '  - {{.Repository}}:{{.Tag}}  ({{.Size}})' \
+    | { grep -E "(^  - $IMAGE:|^  - ghcr.io/mlflow/mlflow:)" || true; }
+  log ""
+  log "Next, bring up the stack with either of:"
+  log "  make docker-run   # API + MLflow UI via docker compose"
+  log "  ./start.sh        # local uvicorn + web + host MLflow UI (dev mode)"
+}
+
+# -------- one-shot setup mode (--prepare) --------
+# Runs before any other preflight: it doesn't need .venv, web deps, or
+# anything else -- just Docker. Exits cleanly when done.
+if [[ $PREP_ONLY -eq 1 ]]; then
+  prepare_images
+  exit 0
+fi
 
 # -------- preflight --------
 NEED_LOCAL=0
