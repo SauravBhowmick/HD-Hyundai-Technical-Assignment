@@ -4,52 +4,43 @@ A reproducible Python ML/MLOps pipeline for the Microsoft Azure Predictive
 Maintenance dataset, exposed as both a Typer CLI and a FastAPI service, and
 served by a React/Vite/TypeScript dashboard.
 
-## Interview context & attribution
+## Context & attribution
 
-This repository is **candidate work** produced for the **HD Hyundai technical
-interview** (Germany). The **requirements, problem framing, and evaluation
-expectations** — predictive maintenance, digital twin–style API responses,
-reproducible ML/MLOps tooling, and demonstration quality — follow the
-interview brief and the discussion with **Hyundai interviewers**. The
-**Azure PdM dataset** (`PdM_*.csv`) used here was also **suggested by the
-Hyundai interviewers**; see [_Data source & credits_](#data-source--credits)
-below for the exact source.
+This repository implements a **predictive maintenance digital twin** for the
+**Microsoft Azure Predictive Maintenance** dataset: a reproducible Python
+ML/MLOps pipeline, Typer CLI, FastAPI service, and React/Vite dashboard.
 
 Everything **implemented here** — architecture, feature engineering, train/test
 design, model choice, API/UI behaviour, Docker/MLflow orchestration, upload
 flow, tests, and documentation — is **original implementation and analysis by
 Saurav Bhowmick**, unless a third-party library or public dataset is explicitly
-cited elsewhere in this document. The interviewers’ brief does not constitute a
-grant of rights to this code; the MIT `LICENSE` applies as stated there. A
+cited elsewhere in this document. The MIT `LICENSE` applies as stated there; a
 short parallel summary lives in **`NOTICE`**.
 
-### Supplementary materials (optional, external)
+### Supplementary materials (in this repo)
 
-This repository is **public and self-contained** for building, training, and
-running the stack — `make install && make train && make api` (or
-`./start.sh`) needs no external resources beyond what is checked in. The
-interview brief itself and the bundled raw CSVs live under `data/raw/` and
-`Technical Interview Assignment.docx` in this repo.
+The repository is **self-contained** for building, training, and running the
+stack — `make install && make train && make api` (or `./start.sh`) needs no
+external resources beyond what is checked in.
 
-A **presentation** prepared for the HD Hyundai technical interview is kept
-in a private Google Drive folder and will be **shared once the interview
-process is complete** (it’s kept out of this public repo until then):
+| Asset | Location | Role |
+| --- | --- | --- |
+| Raw dataset | `data/raw/*.csv` | Five Azure PdM CSVs used by the pipeline |
+| Technical assignment | `Technical Interview Assignment.docx` | Original problem statement (optional read) |
+| Slide deck | [`Hyundai-Predictive-Maintenance.pptx`](Hyundai-Predictive-Maintenance.pptx) | Architecture, results, and demo narrative |
 
-- [Supplementary Google Drive folder](https://drive.google.com/drive/folders/1b-ywJIcJbB14teUfbZRWqO4Rqn-4XXzC) *(optional; access-restricted until the interview is closed; contents are not version-locked and may change over time)*
-
-Anything authoritative for grading or reproduction is in this repo, not in
-that folder.
+The slide deck summarises the same system documented here. For reproducibility,
+API behaviour, and exact commands, treat **this README**, **`docs/architecture.md`**,
+and the code as authoritative.
 
 ### Data source & credits
 
 The five raw CSVs under `data/raw/` (`PdM_telemetry.csv`, `PdM_errors.csv`,
 `PdM_failures.csv`, `PdM_machines.csv`, `PdM_maint.csv`) are the
-**Microsoft Azure Predictive Maintenance** dataset. **The HD Hyundai
-interviewers specifically suggested this dataset** for the assignment; this
-repo uses the Kaggle mirror by Arnab Biswas to get the same CSVs in one
-download:
+**Microsoft Azure Predictive Maintenance** dataset. This repo uses the Kaggle
+mirror by Arnab Biswas to obtain the same CSVs in one download:
 
-- Dataset (as suggested by the interviewers): **Microsoft Azure Predictive Maintenance** — <https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance>
+- Dataset: **Microsoft Azure Predictive Maintenance** — <https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance>
 - Original publisher: Microsoft (Azure AI Gallery, _Predictive Maintenance Modelling Guide_).
 
 The CSVs are bundled here unmodified for reproducibility. All rights to the
@@ -330,7 +321,7 @@ Telemetry spans `2015-01-01 06:00 -> 2016-01-01 06:00`. We pick a **single
 cutoff** for all machines (no row shuffling). The train window covers nine
 months (Jan-Sep 2015, ~75% of rows), the test window the remaining ~3
 months. This is long enough to see seasonal variation, contains all five
-error types and all four failure components, and respects the brief's "no
+error types and all four failure components, and respects the assignment's "no
 random row shuffling" rule.
 
 ### Label
@@ -385,7 +376,7 @@ how loud the alerting would be in operation.
 
 ### Likely component (rule-based)
 
-The brief lets us pick between multi-class head, post-hoc attribution, and
+The assignment allows choosing between multi-class head, post-hoc attribution, and
 rule-based mapping from evidence. We chose **rule-based** because:
 
 1. It uses the same evidence shown in `main_evidence`, so the digital twin
@@ -393,7 +384,7 @@ rule-based mapping from evidence. We chose **rule-based** because:
 2. The four components map cleanly to the
    `hours_since_maint_comp{k}` features we already compute and to the
    error catalogue, both of which are human-readable.
-3. Single-failure approximations are explicitly accepted by the brief.
+3. Single-failure approximations are explicitly accepted by the assignment.
 
 The score for each component combines the *time since its last maintenance*
 (normalised by the maximum across components) and the *recent error counts
@@ -425,7 +416,9 @@ written to `artifacts/drift_report.md`. PSI bands follow the standard
 
 ```
 .
-|- README.md                 # this file
+|- README.md                              # this file
+|- Hyundai-Predictive-Maintenance.pptx    # slide deck (overview, architecture, results)
+|- Technical Interview Assignment.docx    # optional: technical assignment (.docx)
 |- Makefile                  # train / evaluate / predict / api / docker / test / web
 |- Dockerfile                # python:3.11-slim, runs the whole pipeline at build time
 |- pyproject.toml            # pinned deps (pandas, sklearn, lightgbm, fastapi, mlflow, ...)
@@ -447,7 +440,7 @@ written to `artifacts/drift_report.md`. PSI bands follow the standard
 |   |- health.py likely_component.py twin.py drift.py cli.py config.py
 |- api/server.py             # FastAPI app
 |- tests/                    # pytest (14 tests)
-|   |- test_labels.py        # REQUIRED by the brief: window boundary + multi-failure + determinism
+|   |- test_labels.py        # REQUIRED: window boundary + multi-failure + determinism
 |   |- test_features.py      # no-leakage + age_at_t monotonicity + determinism
 |   `- test_api.py           # /predict response matches the DigitalTwin schema
 `- web/                      # React + Vite + TypeScript dashboard
@@ -484,7 +477,7 @@ CORS is enabled for the documented dev origins (5173, 5174, 4173).
 * Tests cover the labelling boundary, no-leakage, age-uplift monotonicity,
   digital-twin schema, and config wiring.
 
-## Deliverables checklist (against the brief)
+## Deliverables checklist (assignment requirements)
 
 * [x] Ingestion -> validation -> features -> labels -> training ->
       evaluation -> inference -> health -> prescription -> API/CLI ->

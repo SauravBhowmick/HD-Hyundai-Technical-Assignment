@@ -1,4 +1,4 @@
-"""Tests for the labelling function (the brief explicitly requires this one)."""
+"""Tests for the labelling function (required by the assignment specification)."""
 from __future__ import annotations
 
 import pandas as pd
