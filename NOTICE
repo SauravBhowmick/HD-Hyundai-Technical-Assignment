@@ -1,13 +1,12 @@
 PdM Digital Twin — attribution
 ==============================
 
-This codebase was produced as **technical interview work** for **HD Hyundai**
-(Germany). The **requirements, problem framing, and dataset** (Azure PdM
-`PdM_*.csv`) follow the **technical interview assignment** and the expectations
-communicated by **Hyundai interviewers**.
+This repository implements a **predictive maintenance digital twin** for the
+**Microsoft Azure Predictive Maintenance** dataset (`PdM_*.csv`). Requirements
+and problem framing follow the bundled technical assignment
+(`Technical Interview Assignment.docx`).
 
-Implementation, design decisions, and documentation in this repository are
-**original work by Saurav Bhowmick** (see `README.md`). This notice does not
-imply endorsement by HD Hyundai.
-
-For license terms, see `LICENSE` (MIT).
+Implementation, design decisions, and documentation are **original work by
+Saurav Bhowmick** (see `README.md`). Third-party libraries and the public
+dataset retain their respective terms; this project is released under the MIT
+`LICENSE`.

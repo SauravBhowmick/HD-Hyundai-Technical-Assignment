@@ -9,7 +9,7 @@ description = "Prescriptive digital twin for predictive maintenance on the Azure
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 license = { file = "LICENSE" }
-authors = [{ name = "Saurav Bhowmick (HD Hyundai technical interview submission)" }]
+authors = [{ name = "Saurav Bhowmick" }]
 dependencies = [
     "pandas>=2.1,<3.0",
     "numpy>=1.26,<3.0",

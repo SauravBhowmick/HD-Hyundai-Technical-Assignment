@@ -1,6 +1,6 @@
 """Model evaluation.
 
-Computes the metrics required by the brief:
+Computes the metrics required by the assignment specification:
 * PR-AUC (primary), ROC-AUC.
 * Precision/recall and confusion matrix at the chosen threshold.
 * False alarms per machine-month (an "alarm" = positive prediction; a
