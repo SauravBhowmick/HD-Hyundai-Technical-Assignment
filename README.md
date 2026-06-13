@@ -20,7 +20,7 @@ short parallel summary lives in **`NOTICE`**.
 ### Supplementary materials (in this repo)
 
 The repository is **self-contained** for building, training, and running the
-stack — `make install && make train && make api` (or `./start.sh`) needs no
+stack — `make install && make train && make api` (or `./start.sh --docker`) needs no
 external resources beyond what is checked in.
 
 | Asset | Location | Role |
@@ -222,13 +222,20 @@ make docker-run       # docker compose up -- brings up two services:
 make compose-down     # tear the stack down when you're finished
 ```
 
-Or, for a friendlier wrapper around the same flow:
+Or, for an interactive launcher (Docker or local dev):
 
 ```bash
-./start.sh            # docker compose up (cached image) + health checks +
-                      # printed URLs; Ctrl+C tears the stack down cleanly.
-                      # Pass --rebuild to force `docker compose up --build`.
+./start.sh            # prompts: Docker (default) or local dev
+./start.sh --docker   # compose stack :8000 + MLflow :5050 (cached image;
+                      # auto-recovers if containers are unhealthy)
+./start.sh --local    # uvicorn :8000 + Vite :5173 (+ optional MLflow :5050)
+./start.sh --docker --rebuild   # force `docker compose up --build`
 ```
+
+`./start.sh --docker` checks whether the `pdm-digital-twin` image is cached and
+passes a quick import smoke test. If containers are already up it reuses them;
+otherwise it runs a recovery ladder (restart → recycle → rebuild → clean rebuild)
+before giving up. Ctrl+C tears the Docker stack down cleanly.
 
 Then open:
 

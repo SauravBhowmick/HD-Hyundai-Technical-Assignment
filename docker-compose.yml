@@ -28,6 +28,17 @@ services:
       # mlruns/ baked into the image at build time, so the host directory is
       # the single source of truth across rebuilds.
       - ./mlruns:/app/mlruns
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5)\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.12.0
@@ -36,3 +47,14 @@ services:
     volumes:
       - ./mlruns:/mlflow/mlruns
     command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/mlruns
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/', timeout=5)\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
