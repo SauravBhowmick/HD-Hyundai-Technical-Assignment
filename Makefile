@@ -24,7 +24,7 @@ help:
 	@echo "  docker-run   bring up API (:8000) + MLflow UI (:5050) via docker compose"
 	@echo "  compose-up   same as docker-run but force-rebuilds the image first"
 	@echo "  compose-down docker compose down (stop + remove the stack)"
-	@echo "  start        ./start.sh -- compose stack + health checks + banner"
+	@echo "  start        ./start.sh -- interactive Docker or local launcher"
 	@echo "  all         install -> train -> drift -> test"
 	@echo "  clean       remove build artifacts"
 
